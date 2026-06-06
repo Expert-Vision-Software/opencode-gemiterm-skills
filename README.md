@@ -80,6 +80,8 @@ opencode-gemiterm-skills/
 │       └── debate-with-gemini/
 │           ├── SKILL.md
 │           └── REFERENCE.md
+├── src/
+│   └── cli.ts                     # CLI stub (version / help), exposed via bin
 ├── tests/
 │   └── skills.test.ts             # smoke test
 ├── .gitignore
@@ -87,7 +89,7 @@ opencode-gemiterm-skills/
 ├── CHANGELOG.md
 ├── LICENSE
 ├── README.md
-├── index.ts                       # CLI stub (version / help)
+├── index.ts                       # module entry: re-exports plugin.ts
 ├── package.json
 ├── plugin.ts                      # no-op plugin entry
 └── tsconfig.json
@@ -99,7 +101,7 @@ opencode-gemiterm-skills/
 - When the consumer adds the package to their `plugins` array, OpenCode loads it and applies the self-config.
 - `.opencode/opencode.json` sets `skills.paths` to `../assets/skills` (relative to the config file's location) and pre-grants `permission.skill: "allow"` for both skills.
 - `plugin.ts` is a no-op because the self-config handles all the work.
-- `index.ts` is a CLI stub for `bunx opencode-gemiterm-skills` that prints version and help.
+- `index.ts` is the module entry, a one-line re-export of `plugin.ts`. The actual CLI lives in `src/cli.ts` and is what `bunx opencode-gemiterm-skills` invokes.
 
 ## Tests
 
@@ -121,7 +123,7 @@ The smoke test verifies:
 
 - The `metadata.requires: gemiterm` field is preserved verbatim on `debate-with-gemini`. OpenCode does not enforce skill-to-skill dependencies — the agent must check `metadata.requires` and the prerequisites above before invoking `debate-with-gemini`.
 - The `metadata.tool`, `metadata.requires`, and `metadata.workflow` fields are stored under the `metadata` map (which OpenCode recognises). Sub-keys beyond `metadata` itself are not formally specified in the OpenCode skill schema, so they may be ignored by some agents — this package treats them as documentation only.
-- A CLI stub is exposed as `opencode-gemiterm-skills` via the `bin` field. It prints the package version and a help summary; it does not perform any installation. Run it with `bunx opencode-gemiterm-skills` or `npx opencode-gemiterm-skills`.
+- A CLI stub is exposed as `opencode-gemiterm-skills` via the `bin` field, implemented in `src/cli.ts`. It prints the package version (read live from `package.json`) and a help summary; it does not perform any installation. Run it with `bunx opencode-gemiterm-skills` or `npx opencode-gemiterm-skills`.
 
 ## Publishing
 

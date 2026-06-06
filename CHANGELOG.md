@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `package.json` `files` array now whitelists `.opencode/opencode.json` instead of the entire `.opencode/` directory, so the dev-only `node_modules`, `package.json`, and lockfile in `.opencode/` do not ship
 - `.opencode/opencode.json` (self-config) stripped of dev-only entries: removed `../.agents/skills` from `skills.paths`, removed the `plugin: ["opencode-architect"]` array, removed the empty `mcp: {}` block
 - `package.json` version bumped to `0.2.0`
+- Module/CLI refactor: `index.ts` is now a one-line re-export of `plugin.ts`; the CLI stub (version/help) moved to `src/cli.ts` with a `#!/usr/bin/env bun` shebang and dynamic version read from `package.json`. `package.json#bin` now points at `./src/cli.ts`; `package.json#files` now includes `"src"`; `tsconfig.json#include` now includes `"src/**/*.ts"`. This eliminates the hardcoded version string and matches the layout used by `opencode-intellisearch`.
 
 ## [0.1.0] - 2026-06-06
 

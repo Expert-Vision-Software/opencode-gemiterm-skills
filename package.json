@@ -14,7 +14,7 @@
     "debate"
   ],
   "bin": {
-    "opencode-gemiterm-skills": "index.ts"
+    "opencode-gemiterm-skills": "./src/cli.ts"
   },
   "engines": {
     "bun": ">=1.0.0"
@@ -23,6 +23,7 @@
   "files": [
     "index.ts",
     "plugin.ts",
+    "src",
     "assets",
     ".opencode/opencode.json",
     "README.md",
