@@ -1,0 +1,44 @@
+{
+  "name": "opencode-gemiterm-skills",
+  "version": "0.1.0",
+  "type": "module",
+  "module": "index.ts",
+  "description": "OpenCode plugin bundling the gemiterm and debate-with-gemini skills.",
+  "license": "MIT",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "opencode-skills",
+    "gemiterm",
+    "gemini",
+    "debate"
+  ],
+  "files": [
+    "index.ts",
+    "plugin.ts",
+    "assets",
+    ".opencode",
+    "README.md",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "opencode": {
+    "plugin": ".opencode/opencode.json"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/expert-vision-software/opencode-gemiterm-skills.git"
+  },
+  "bugs": {
+    "url": "https://github.com/expert-vision-software/opencode-gemiterm-skills/issues"
+  }
+}
