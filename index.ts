@@ -1,5 +1,6 @@
+#!/usr/bin/env bun
 const PACKAGE_NAME = "opencode-gemiterm-skills";
-const PACKAGE_VERSION = "0.1.0";
+const PACKAGE_VERSION = "0.2.0";
 const BUNDLED_SKILLS = ["gemiterm", "debate-with-gemini"];
 const SELF_CONFIG_PATH = ".opencode/opencode.json";
 

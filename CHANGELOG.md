@@ -5,6 +5,22 @@ All notable changes to `opencode-gemiterm-skills` will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-06-06
+
+### Added
+- npm distribution support: `bin` field exposes `opencode-gemiterm-skills` CLI stub via `bunx` / `npx`
+- `engines: { "bun": ">=1.0.0" }` and `sideEffects: false` metadata
+- `homepage` and `author` fields in `package.json`
+- `prepublishOnly` script that runs `tsc --noEmit` and `bun test` before publish
+- Bun shebang (`#!/usr/bin/env bun`) on `index.ts` so the CLI stub is executable
+- README section for `npm install` install path (file:// install preserved as alternative)
+- README section documenting the publish flow
+
+### Changed
+- `package.json` `files` array now whitelists `.opencode/opencode.json` instead of the entire `.opencode/` directory, so the dev-only `node_modules`, `package.json`, and lockfile in `.opencode/` do not ship
+- `.opencode/opencode.json` (self-config) stripped of dev-only entries: removed `../.agents/skills` from `skills.paths`, removed the `plugin: ["opencode-architect"]` array, removed the empty `mcp: {}` block
+- `package.json` version bumped to `0.2.0`
+
 ## [0.1.0] - 2026-06-06
 
 ### Added

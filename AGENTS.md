@@ -10,8 +10,8 @@
 <context_hierarchy>
 <system>OpenCode plugin loader</system>
 <domain>OpenCode skill packaging</domain>
-<task>Bundle markdown skills into a locally-shareable plugin package</task>
-<execution>Local file:// reference, no npm publishing</execution>
+<task>Bundle markdown skills into a publishable plugin package</task>
+<execution>npm distribution (opencode-gemiterm-skills) with file:// reference as a development fallback</execution>
 </context_hierarchy>
 
 <role>
@@ -32,6 +32,17 @@
 </self_config>
 
 <consumer_install>
+<npm>
+<command>npm install opencode-gemiterm-skills</command>
+<opencode_json_snippet>
+{
+  "plugins": [
+    "opencode-gemiterm-skills"
+  ]
+}
+</opencode_json_snippet>
+</npm>
+<file_fallback>
 <opencode_json_snippet>
 {
   "plugins": [
@@ -39,6 +50,8 @@
   ]
 }
 </opencode_json_snippet>
+<use_case>Local development against a checkout of this repo</use_case>
+</file_fallback>
 <prerequisites>
   - pip install gemiterm
   - gemiterm install-browser

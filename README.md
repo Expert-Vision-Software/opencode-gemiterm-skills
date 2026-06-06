@@ -32,22 +32,39 @@ gemiterm status
 
 The `install-browser` step is a one-time Playwright install (Chrome by default). The `auth` step opens a browser for the OAuth flow and must be run interactively.
 
-## Install (file:// reference)
+## Install (npm)
 
-The intended use is local sharing — reference the package directory directly from the consumer's `opencode.json`:
+```bash
+npm install opencode-gemiterm-skills
+```
+
+Then add the package name to your `opencode.json` `plugins` array:
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
   "plugins": [
-    "file:///C:/dev/projects/playground/aigpt/gemini-debater/opencode-gemiterm-skills"
+    "opencode-gemiterm-skills"
   ]
 }
 ```
 
-Replace the path with the absolute location of the package on your machine. OpenCode loads `index.ts` as the plugin entry and applies the self-config at `.opencode/opencode.json`, which registers `assets/skills/` as a skill path.
+OpenCode loads the package, applies the self-config at `.opencode/opencode.json`, and registers `assets/skills/` as a skill path. After restarting OpenCode, both skills should appear in the `skill` tool's `<available_skills>` list.
 
-After restarting OpenCode, both skills should appear in the `skill` tool's `<available_skills>` list.
+## Install (file:// reference)
+
+For local development against a checkout of this repo, reference the package directory directly from the consumer's `opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": [
+    "file:///absolute/path/to/opencode-gemiterm-skills"
+  ]
+}
+```
+
+Replace the path with the absolute location of the package on your machine.
 
 ## File layout
 
@@ -104,7 +121,18 @@ The smoke test verifies:
 
 - The `metadata.requires: gemiterm` field is preserved verbatim on `debate-with-gemini`. OpenCode does not enforce skill-to-skill dependencies — the agent must check `metadata.requires` and the prerequisites above before invoking `debate-with-gemini`.
 - The `metadata.tool`, `metadata.requires`, and `metadata.workflow` fields are stored under the `metadata` map (which OpenCode recognises). Sub-keys beyond `metadata` itself are not formally specified in the OpenCode skill schema, so they may be ignored by some agents — this package treats them as documentation only.
-- This package is not published to npm. The `repository` field in `package.json` is a opencode-gemiterm-skills.
+- A CLI stub is exposed as `opencode-gemiterm-skills` via the `bin` field. It prints the package version and a help summary; it does not perform any installation. Run it with `bunx opencode-gemiterm-skills` or `npx opencode-gemiterm-skills`.
+
+## Publishing
+
+This package is published to npm as `opencode-gemiterm-skills`. To cut a new release:
+
+```bash
+npm version patch   # or minor / major
+npm publish --access public
+```
+
+The `prepublishOnly` script runs `tsc --noEmit` and `bun test` before publishing.
 
 ## License
 

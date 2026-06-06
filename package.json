@@ -1,6 +1,6 @@
 {
   "name": "opencode-gemiterm-skills",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "module": "index.ts",
   "description": "OpenCode plugin bundling the gemiterm and debate-with-gemini skills.",
@@ -13,11 +13,18 @@
     "gemini",
     "debate"
   ],
+  "bin": {
+    "opencode-gemiterm-skills": "index.ts"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "sideEffects": false,
   "files": [
     "index.ts",
     "plugin.ts",
     "assets",
-    ".opencode",
+    ".opencode/opencode.json",
     "README.md",
     "AGENTS.md",
     "CHANGELOG.md",
@@ -28,9 +35,11 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "prepublishOnly": "bun run check && bun test"
   },
   "devDependencies": {
+    "@opencode-ai/plugin": "^1.16.2",
     "@types/bun": "latest",
     "typescript": "^5.7.0"
   },
@@ -38,7 +47,9 @@
     "type": "git",
     "url": "https://github.com/expert-vision-software/opencode-gemiterm-skills.git"
   },
+  "homepage": "https://github.com/expert-vision-software/opencode-gemiterm-skills#readme",
   "bugs": {
     "url": "https://github.com/expert-vision-software/opencode-gemiterm-skills/issues"
-  }
+  },
+  "author": "opencode-gemiterm-skills contributors"
 }
