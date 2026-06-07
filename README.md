@@ -1,15 +1,15 @@
 <!-- 
-  SEO description: opencode-gemiterm-skills is an OpenCode plugin that adds Google Gemini terminal skills 
-  to your AI agent — list, search, export Gemini chats and run structured debates with Gemini from OpenCode.
-  Keywords: OpenCode plugin, Gemini CLI, gemiterm, AI agent skills, Google Gemini terminal, 
-  OpenCode skills, Gemini chat export, AI debate, multi-turn debate, terminal AI
+  SEO description: AI agent skills for Google Gemini — list, search, export Gemini chats and run 
+  structured debates with Gemini. Works with OpenCode, Claude Code, and any skill-compatible AI agent.
+  Keywords: Gemini CLI, gemiterm, AI agent skills, Google Gemini terminal, Gemini chat export, 
+  AI debate, multi-turn debate, terminal AI, agent skills, Gemini terminal
 -->
 
 <div align="center">
 
 # opencode-gemiterm-skills
 
-**OpenCode skills for Google Gemini — chat export, search & AI-powered debates from your terminal**
+**Gemini terminal skills for AI agents — chat export, search & AI-powered debates**
 
 [![OpenCode Plugin](https://img.shields.io/badge/OpenCode-Plugin-blue?link=https://opencode.ai)](https://opencode.ai)
 [![npm version](https://img.shields.io/npm/v/opencode-gemiterm-skills?label=npm)](https://www.npmjs.com/package/opencode-gemiterm-skills)
@@ -21,7 +21,9 @@
 
 ---
 
-Bring the power of [Google Gemini](https://gemini.google.com) directly into your [OpenCode](https://opencode.ai) agent sessions. This plugin bundles two skills — **gemiterm** and **debate-with-gemini** — so your AI coding assistant can search your Gemini chats, export conversation history, and even run structured multi-turn debates with Gemini to validate ideas before you commit to code.
+Bring the power of [Google Gemini](https://gemini.google.com) directly into your AI agent sessions. This package bundles two skills — **gemiterm** and **debate-with-gemini** — so any compatible agent can search your Gemini chats, export conversation history, and run structured multi-turn debates with Gemini to validate ideas before you commit to code.
+
+Works with [OpenCode](https://opencode.ai), and any agent that supports the `skill` tool or can invoke CLI-installed skills via `bunx`/`npx`.
 
 ## Bundled skills
 
@@ -30,19 +32,22 @@ Bring the power of [Google Gemini](https://gemini.google.com) directly into your
 | **gemiterm** | Search, list, export, and manage your Google Gemini chat history from the terminal. |
 | **debate-with-gemini** | Run structured multi-turn technical debates with Gemini AI — perfect for validating architecture decisions, trade-offs, and design choices. |
 
-Both skills are loaded on demand via the native `skill` tool. Metadata (name + description) is pre-loaded at session start; the full skill body loads only when the agent decides it's relevant — zero overhead when not in use.
+Both skills are loaded on demand. Metadata (name + description) is pre-loaded at session start; the full skill body loads only when the agent decides it's relevant — zero overhead when not in use.
 
 ## Quick start
 
 ```bash
-# Install skills and register them with OpenCode
-bunx opencode-gemiterm-skills install
+# Install skills via bunx
+bunx opencode-gemiterm-skills install [--scope global]
 
-# Or globally (all projects on this machine)
-bunx opencode-gemiterm-skills install --scope global
+# Or with npx
+npx opencode-gemiterm-skills install [--scope global]
+
+# Or skills.sh
+npx skills add expert-vision-software/opencode-gemiterm-skills --skill [gemiterm/debate-with-gemini]
 ```
 
-That's it — both skills appear in OpenCode's `<available_skills>` list immediately. No restart needed.
+That's it — skills are available immediately.
 
 ## Examples
 
@@ -94,17 +99,23 @@ Gemini conceded on the replication point but raised WAL-mode mitigations.
 | Component | Notes |
 |-----------|-------|
 | **[gemiterm](https://github.com/Expert-Vision-Software/gemiterm) CLI** | Must be installed and authenticated. Both skills depend on it. |
-| **Bun `>=1.0.0`** *(optional)* | Required only for the CLI installer (`bunx … install`) and test suite. |
+| **Google Account** | Required for gemini web. Expiring cookie is stored locally only. |
 
 ## Installation
 
-### From npm
+### CLI install (any agent)
 
 ```bash
-npm install opencode-gemiterm-skills
+# Via bunx
+bunx opencode-gemiterm-skills install
+
+# Via npx
+npx opencode-gemiterm-skills install
 ```
 
-Then add to your `opencode.json`:
+### OpenCode plugin
+
+Add to your `opencode.json`:
 
 ```json
 {
@@ -112,21 +123,9 @@ Then add to your `opencode.json`:
 }
 ```
 
-### Local development
-
-Reference the package directory directly:
-
-```json
-{
-  "plugins": ["file:///absolute/path/to/opencode-gemiterm-skills"]
-}
-```
-
-OpenCode auto-installs skills from the local checkout on first load.
-
 ## Why this plugin?
 
-- **No context switching** — access your Gemini conversations without leaving OpenCode.
+- **No context switching** — access your Gemini conversations without leaving your agent.
 - **Zero-config debates** — let your agent argue both sides of a technical decision with real Gemini responses.
 - **Portable chat data** — export Gemini history to Markdown for grep, archival, or feeding into other tools.
 - **Lightweight** — pure skill bundle, no runtime dependencies, loads on demand.

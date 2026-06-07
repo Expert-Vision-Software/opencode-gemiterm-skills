@@ -2,7 +2,7 @@
 name: gemiterm
 description: Google Gemini Terminal CLI wrapper for listing chats, fetching transcripts, exporting conversations, and managing profiles via the gemiterm Python CLI. Use when the user asks to read, list, export, or interact with Gemini chat history from a terminal, or invokes "gemiterm" commands.
 license: MIT
-compatibility: opencode
+compatibility: opencode, claude-code, and any skill-compatible agent
 metadata:
   tool: gemiterm
 ---

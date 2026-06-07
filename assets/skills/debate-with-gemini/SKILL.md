@@ -2,9 +2,9 @@
 name: debate-with-gemini
 description: Conduct structured multi-turn technical debates with Gemini AI via gemiterm CLI. Delegates a subagent to argue a position (for/against) autonomously for up to N turns. Use when user says "debate gemini", "argue with gemini", "have gemini defend/attack X", "continue debate", or wants a technical position stress-tested against Gemini. Triggers on: debate, argue, gemini, position, for/against, stress-test, counter-argument. Requires gemiterm CLI installed and authenticated.
 license: MIT
-compatibility: opencode
+compatibility: opencode, claude-code, and any skill-compatible agent
 metadata:
-  requires: gemiterm
+  tool: gemiterm
   workflow: debate
 ---
 
