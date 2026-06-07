@@ -46,11 +46,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/expert-vision-software/opencode-gemiterm-skills.git"
+    "url": "https://github.com/Expert-Vision-Software/opencode-gemiterm-skills.git"
   },
-  "homepage": "https://github.com/expert-vision-software/opencode-gemiterm-skills#readme",
+  "homepage": "https://github.com/Expert-Vision-Software/opencode-gemiterm-skills#readme",
   "bugs": {
-    "url": "https://github.com/expert-vision-software/opencode-gemiterm-skills/issues",
+    "url": "https://github.com/Expert-Vision-Software/opencode-gemiterm-skills/issues",
     "email": "support@expertvisionsoftware.com"
   },
   "author": "Expert Vision Software",
