@@ -2,7 +2,7 @@
 
 <critical_rules priority="highest">
 1. The bundled `debate-with-gemini` skill depends on the `gemiterm` Python CLI being installed and authenticated on the host.
-2. This package is markdown-only — it has no TypeScript logic and no CLI installer. The `src/` folder exists solely to host the CLI stub at `src/cli.ts` (version/help printer, resolved by `package.json#bin`). Do not add any other code under `src/`.
+2. This package ships a real installer (`src/installer.ts`) that copies skill assets to the consumer's `.opencode/skills/` and registers them in `opencode.json`. The `src/cli.ts` is the CLI entry point (install/uninstall/status subcommands), resolved by `package.json#bin`. Only add code under `src/` that supports the install/uninstall/status commands.
 3. Skill frontmatter is the source of truth. Do not edit `assets/skills/*/SKILL.md` frontmatter in ways that break the `name` / `description` contract.
 4. The `metadata.requires: gemiterm` link on `debate-with-gemini` must remain so consumers know to install the Python CLI first.
 </critical_rules>

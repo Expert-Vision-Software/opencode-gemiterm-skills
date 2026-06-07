@@ -54,5 +54,8 @@
     "url": "https://github.com/expert-vision-software/opencode-gemiterm-skills/issues",
     "email": "support@expertvisionsoftware.com"
   },
-  "author": "opencode-gemiterm-skills contributors"
+  "author": "opencode-gemiterm-skills contributors",
+  "publishConfig": {
+    "access": "public"
+  }
 }
