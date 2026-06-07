@@ -1,5 +1,9 @@
 # opencode-gemiterm-skills
 
+[![OpenCode Plugin](https://img.shields.io/badge/OpenCode-Plugin-blue?link=https://opencode.ai)](https://opencode.ai)
+[![npm version](https://img.shields.io/npm/v/opencode-gemiterm-skills?label=npm)](https://www.npmjs.com/package/opencode-gemiterm-skills)
+[![MIT License](https://img.shields.io/badge/License-MIT-green?link=LICENSE)](LICENSE)
+
 Local OpenCode plugin package that bundles the `gemiterm` and `debate-with-gemini` skills so other projects can install both by adding a single entry to their `opencode.json` `plugins` array.
 
 This package is **markdown-only**. It contains no TypeScript logic, no CLI installer, and no `src/` folder. The skill assets in `assets/skills/` are registered with OpenCode via the package's self-config at `.opencode/opencode.json`, which is wired up through the `opencode.plugin` pointer in `package.json`.
@@ -13,32 +17,15 @@ This package is **markdown-only**. It contains no TypeScript logic, no CLI insta
 
 Both skills are loaded on demand via the native `skill` tool. The metadata of each skill (name + description) is pre-loaded at session start; the full `SKILL.md` body is loaded only when the agent decides the skill is relevant.
 
-## Prerequisites
+## Quick start
 
-The `gemiterm` Python CLI must be installed and authenticated on the consumer's machine. `debate-with-gemini` depends on it.
-
-```bash
-pip install gemiterm
-gemiterm install-browser
-gemiterm auth
-```
-
-Verify before use:
-
-```bash
-gemiterm --version
-gemiterm status
-```
-
-The `install-browser` step is a one-time Playwright install (Chrome by default). The `auth` step opens a browser for the OAuth flow and must be run interactively.
-
-## Install (npm)
+Install, configure, restart OpenCode — skills are ready.
 
 ```bash
 npm install opencode-gemiterm-skills
 ```
 
-Then add the package name to your `opencode.json` `plugins` array:
+Add to your `opencode.json`:
 
 ```json
 {
@@ -50,6 +37,14 @@ Then add the package name to your `opencode.json` `plugins` array:
 ```
 
 OpenCode loads the package, applies the self-config at `.opencode/opencode.json`, and registers `assets/skills/` as a skill path. After restarting OpenCode, both skills should appear in the `skill` tool's `<available_skills>` list.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| Skill not in `<available_skills>` list | `gemiterm` auth expired or incomplete | Run `gemiterm status` and re-authenticate if needed |
+| Plugin fails to load | `opencode.json` missing or misconfigured | Verify the `plugins` array contains `opencode-gemiterm-skills` and restart OpenCode |
+| `bunx opencode-gemiterm-skills` not found | Bun `<1.0.0` or package not in PATH | Ensure Bun `>=1.0.0` is installed; try `npx opencode-gemiterm-skills` as fallback |
 
 ## Install (file:// reference)
 
@@ -103,7 +98,13 @@ opencode-gemiterm-skills/
 - `plugin.ts` is a no-op because the self-config handles all the work.
 - `index.ts` is the module entry, a one-line re-export of `plugin.ts`. The actual CLI lives in `src/cli.ts` and is what `bunx opencode-gemiterm-skills` invokes.
 
-## Tests
+## Development
+
+Run the test suite:
+
+```bash
+bun test
+```
 
 ```bash
 bun test
@@ -124,6 +125,12 @@ The smoke test verifies:
 - The `metadata.requires: gemiterm` field is preserved verbatim on `debate-with-gemini`. OpenCode does not enforce skill-to-skill dependencies — the agent must check `metadata.requires` and the prerequisites above before invoking `debate-with-gemini`.
 - The `metadata.tool`, `metadata.requires`, and `metadata.workflow` fields are stored under the `metadata` map (which OpenCode recognises). Sub-keys beyond `metadata` itself are not formally specified in the OpenCode skill schema, so they may be ignored by some agents — this package treats them as documentation only.
 - A CLI stub is exposed as `opencode-gemiterm-skills` via the `bin` field, implemented in `src/cli.ts`. It prints the package version (read live from `package.json`) and a help summary; it does not perform any installation. Run it with `bunx opencode-gemiterm-skills` or `npx opencode-gemiterm-skills`.
+
+## Acknowledgments
+
+- [OpenCode](https://opencode.ai) — plugin architecture and skill loader
+- [Bun](https://bun.sh) — fast JS runtime used as the package's CLI host
+- [DeepWiki](https://deepwiki.com) — research and context tool for codebase exploration
 
 ## Publishing
 

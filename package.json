@@ -5,6 +5,7 @@
   "module": "index.ts",
   "description": "OpenCode plugin bundling the gemiterm and debate-with-gemini skills.",
   "license": "MIT",
+  "publisher": "Expert Vision Software",
   "keywords": [
     "opencode",
     "opencode-plugin",
@@ -50,7 +51,8 @@
   },
   "homepage": "https://github.com/expert-vision-software/opencode-gemiterm-skills#readme",
   "bugs": {
-    "url": "https://github.com/expert-vision-software/opencode-gemiterm-skills/issues"
+    "url": "https://github.com/expert-vision-software/opencode-gemiterm-skills/issues",
+    "email": "support@expertvisionsoftware.com"
   },
   "author": "opencode-gemiterm-skills contributors"
 }
