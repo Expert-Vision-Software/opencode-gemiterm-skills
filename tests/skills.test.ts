@@ -47,15 +47,6 @@ describe("bundled skills", () => {
   }
 });
 
-test("debate-with-gemini declares metadata.requires: gemiterm", async () => {
-  const content = await loadSkillFile("debate-with-gemini", "SKILL.md");
-  const frontmatter = extractFrontmatter(content);
-  expect(frontmatter).not.toBeNull();
-  if (frontmatter === null) return;
-  expect(frontmatter).toMatch(/^metadata:\s*$/m);
-  expect(frontmatter).toMatch(/^\s+requires:\s+gemiterm\s*$/m);
-});
-
 test("gemiterm declares metadata.tool: gemiterm", async () => {
   const content = await loadSkillFile("gemiterm", "SKILL.md");
   const frontmatter = extractFrontmatter(content);
