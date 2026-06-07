@@ -36,9 +36,12 @@
     "test": "bun test",
     "prepublishOnly": "bun run check && bun test"
   },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.16.2"
+  },
   "devDependencies": {
-    "@opencode-ai/plugin": "^1.16.2",
     "@types/bun": "latest",
+    "@types/node": "latest",
     "typescript": "^5.7.0"
   },
   "repository": {

@@ -1,12 +1,14 @@
 #!/usr/bin/env bun
 import { parseArgs } from "node:util";
+import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { installCommand } from "./commands/install.ts";
 import { uninstallCommand } from "./commands/uninstall.ts";
 import { statusCommand } from "./commands/status.ts";
 import type { Scope } from "./installer.ts";
 
 const VERSION = JSON.parse(
-  await Bun.file(`${import.meta.dirname}/../package.json`).text(),
+  await Bun.file(join(fileURLToPath(new URL("../", import.meta.url)), "package.json")).text(),
 ).version;
 
 function printHelp(): void {
