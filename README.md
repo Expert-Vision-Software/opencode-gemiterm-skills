@@ -31,6 +31,57 @@ That's it. After install, both `gemiterm` and `debate-with-gemini` appear in the
 
 For global install, skills are placed in `~/.config/opencode/skills/`. For local install (default), they are placed in `{project}/.opencode/skills/`.
 
+## Example use cases
+
+### List and search Gemini chats (`gemiterm` skill)
+
+> **You:** "Find my Gemini chats about React Server Components and export them."
+
+Agent loads the `gemiterm` skill, then:
+
+```bash
+gemiterm list --all-profiles --format json
+# → filters chats by title/keyword "React Server Components"
+gemiterm export <chat_id> --output ./exports/rsc-chat.md
+```
+
+**Agent:** "Found 3 matching chats. Exported all to `./exports/` — here's a summary of each…"
+
+---
+
+### Bulk export for analysis (`gemiterm` skill)
+
+> **You:** "Export all my recent Gemini chats so I can grep through them."
+
+Agent loads the `gemiterm` skill, then:
+
+```bash
+gemiterm list --limit 20 --sort recent --format json
+gemiterm export-all --output ./gemini-exports --format md --parallel 4
+```
+
+**Agent:** "Exported 18 chats to `./gemini-exports/` in Markdown. You can search them with `grep -r "topic" ./gemini-exports/`."
+
+---
+
+### Structured debate with Gemini (`debate-with-gemini` skill)
+
+> **You:** "Debate Gemini for/against using SQLite as the primary database for a SaaS app. Context: docs/arch.md. 5 turns."
+
+Agent loads both skills, verifies auth, reads context, seeds a new Gemini chat with the opposing stance, and spawns a subagent that runs 5 rounds of back-and-forth autonomously.
+
+**Agent:** "Debate complete (5 turns). Gemini argued **for** SQLite (simplicity, zero-config, adequate for early-stage). I argued **against** (concurrency limits, no network access, scaling ceiling). Key agreements: fine for prototyping, migrate to Postgres before 100+ concurrent users. Full transcript saved via `gemiterm export`."
+
+---
+
+### Continue a previous debate (`debate-with-gemini` skill)
+
+> **You:** "Continue that SQLite debate for 3 more turns. Here's the chat_id: c_abc123."
+
+Agent loads the `debate-with-gemini` skill, fetches the existing chat to resume context, and picks up where the last round left off.
+
+**Agent:** "Resumed debate on chat `c_abc123`. Ran 3 additional turns. Gemini conceded on the replication point but raised WAL-mode mitigations. Updated debate report ready."
+
 ## Requirements
 
 | | Component | Notes |
