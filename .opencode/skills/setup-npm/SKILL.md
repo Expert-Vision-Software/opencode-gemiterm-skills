@@ -1,5 +1,5 @@
 ---
-name: setup-npm-auto-publish
+name: setup-npm
 description: Set up a GitHub Actions workflow that auto-publishes an npm package when a `v*` tag is pushed. Use when adding CI/CD publishing to an existing project, creating a release.yml workflow, troubleshooting a failed npm publish (403/404/E422), configuring NPM_TOKEN secrets, or recovering from a broken release/tag. Covers the full workflow YAML, required permissions block, npm auth via ~/.npmrc, repository URL case-sensitivity, and the tag-reset retry procedure. Trigger keywords: npm publish, release workflow, github actions npm, NPM_TOKEN, 404 not in this registry, E422 provenance, softprops action-gh-release, npm pkg fix, v-tag.
 license: MIT
 compatibility: opencode
