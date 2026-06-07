@@ -1,21 +1,36 @@
+<!-- 
+  SEO description: opencode-gemiterm-skills is an OpenCode plugin that adds Google Gemini terminal skills 
+  to your AI agent — list, search, export Gemini chats and run structured debates with Gemini from OpenCode.
+  Keywords: OpenCode plugin, Gemini CLI, gemiterm, AI agent skills, Google Gemini terminal, 
+  OpenCode skills, Gemini chat export, AI debate, multi-turn debate, terminal AI
+-->
+
+<div align="center">
+
 # opencode-gemiterm-skills
+
+**OpenCode skills for Google Gemini — chat export, search & AI-powered debates from your terminal**
 
 [![OpenCode Plugin](https://img.shields.io/badge/OpenCode-Plugin-blue?link=https://opencode.ai)](https://opencode.ai)
 [![npm version](https://img.shields.io/npm/v/opencode-gemiterm-skills?label=npm)](https://www.npmjs.com/package/opencode-gemiterm-skills)
 [![MIT License](https://img.shields.io/badge/License-MIT-green?link=LICENSE)](LICENSE)
 
-Local OpenCode plugin package that bundles the `gemiterm` and `debate-with-gemini` skills for OpenCode agents. Install once and the skills are available to every OpenCode session on the machine.
+[Quick Start](#quick-start) · [Skills](#bundled-skills) · [Examples](#examples) · [Requirements](#requirements) · [Contributing](CONTRIBUTING.md)
 
-[`gemiterm`](https://github.com/Expert-Vision-Software/gemiterm) is a CLI for interacting with Google Gemini from the terminal — listing, fetching, exporting, and managing Gemini chat history. This plugin wraps it into OpenCode skills so agents can use Gemini conversational data directly in workflows.
+</div>
+
+---
+
+Bring the power of [Google Gemini](https://gemini.google.com) directly into your [OpenCode](https://opencode.ai) agent sessions. This plugin bundles two skills — **gemiterm** and **debate-with-gemini** — so your AI coding assistant can search your Gemini chats, export conversation history, and even run structured multi-turn debates with Gemini to validate ideas before you commit to code.
 
 ## Bundled skills
 
-| Skill | Purpose |
-|-------|---------|
-| `gemiterm` | Google Gemini Terminal CLI wrapper for listing, fetching, exporting, and managing Gemini chat history. |
-| `debate-with-gemini` | Conducts structured multi-turn technical debates with Gemini AI via the `gemiterm` CLI, delegating the back-and-forth to a subagent. |
+| Skill | What it does |
+|-------|-------------|
+| **gemiterm** | Search, list, export, and manage your Google Gemini chat history from the terminal. |
+| **debate-with-gemini** | Run structured multi-turn technical debates with Gemini AI — perfect for validating architecture decisions, trade-offs, and design choices. |
 
-Both skills are loaded on demand via the native `skill` tool. The metadata of each skill (name + description) is pre-loaded at session start; the full `SKILL.md` body is loaded only when the agent decides the skill is relevant.
+Both skills are loaded on demand via the native `skill` tool. Metadata (name + description) is pre-loaded at session start; the full skill body loads only when the agent decides it's relevant — zero overhead when not in use.
 
 ## Quick start
 
@@ -23,195 +38,108 @@ Both skills are loaded on demand via the native `skill` tool. The metadata of ea
 # Install skills and register them with OpenCode
 bunx opencode-gemiterm-skills install
 
-# Or globally (for all projects on this machine)
+# Or globally (all projects on this machine)
 bunx opencode-gemiterm-skills install --scope global
 ```
 
-That's it. After install, both `gemiterm` and `debate-with-gemini` appear in the `skill` tool's `<available_skills>` list. No restart needed — OpenCode loads skills on demand.
+That's it — both skills appear in OpenCode's `<available_skills>` list immediately. No restart needed.
 
-For global install, skills are placed in `~/.config/opencode/skills/`. For local install (default), they are placed in `{project}/.opencode/skills/`.
+## Examples
 
-## Example use cases
-
-### List and search Gemini chats (`gemiterm` skill)
+### 🔍 Search and export Gemini chats
 
 > **You:** "Find my Gemini chats about React Server Components and export them."
 
-Agent loads the `gemiterm` skill, then:
+Agent loads the `gemiterm` skill, searches your Gemini history, and exports matches:
 
-```bash
-gemiterm list --all-profiles --format json
-# → filters chats by title/keyword "React Server Components"
-gemiterm export <chat_id> --output ./exports/rsc-chat.md
+```
+Found 3 matching chats. Exported all to ./exports/ — here's a summary of each…
 ```
 
-**Agent:** "Found 3 matching chats. Exported all to `./exports/` — here's a summary of each…"
-
----
-
-### Bulk export for analysis (`gemiterm` skill)
+### 📦 Bulk export for offline analysis
 
 > **You:** "Export all my recent Gemini chats so I can grep through them."
 
-Agent loads the `gemiterm` skill, then:
+Agent lists and exports chats in parallel:
 
-```bash
-gemiterm list --limit 20 --sort recent --format json
-gemiterm export-all --output ./gemini-exports --format md --parallel 4
+```
+Exported 18 chats to ./gemini-exports/ in Markdown. Search with: grep -r "topic" ./gemini-exports/
 ```
 
-**Agent:** "Exported 18 chats to `./gemini-exports/` in Markdown. You can search them with `grep -r "topic" ./gemini-exports/`."
-
----
-
-### Structured debate with Gemini (`debate-with-gemini` skill)
+### 🗣️ Structured debate with Gemini
 
 > **You:** "Debate Gemini for/against using SQLite as the primary database for a SaaS app. Context: docs/arch.md. 5 turns."
 
-Agent loads both skills, verifies auth, reads context, seeds a new Gemini chat with the opposing stance, and spawns a subagent that runs 5 rounds of back-and-forth autonomously.
+Agent reads your context, seeds a new Gemini chat with the opposing stance, and runs 5 rounds of autonomous back-and-forth:
 
-**Agent:** "Debate complete (5 turns). Gemini argued **for** SQLite (simplicity, zero-config, adequate for early-stage). I argued **against** (concurrency limits, no network access, scaling ceiling). Key agreements: fine for prototyping, migrate to Postgres before 100+ concurrent users. Full transcript saved via `gemiterm export`."
+```
+Debate complete (5 turns). Gemini argued FOR SQLite (simplicity, zero-config).
+I argued AGAINST (concurrency limits, no network access, scaling ceiling).
+Key agreements: fine for prototyping, migrate to Postgres before 100+ concurrent users.
+```
 
----
-
-### Continue a previous debate (`debate-with-gemini` skill)
+### 🔄 Continue a previous debate
 
 > **You:** "Continue that SQLite debate for 3 more turns. Here's the chat_id: c_abc123."
 
-Agent loads the `debate-with-gemini` skill, fetches the existing chat to resume context, and picks up where the last round left off.
+Agent picks up exactly where the last round left off:
 
-**Agent:** "Resumed debate on chat `c_abc123`. Ran 3 additional turns. Gemini conceded on the replication point but raised WAL-mode mitigations. Updated debate report ready."
+```
+Resumed debate on chat c_abc123. Ran 3 additional turns.
+Gemini conceded on the replication point but raised WAL-mode mitigations.
+```
 
 ## Requirements
 
-| | Component | Notes |
-| --- | --- | --- |
-| **Runtime** | [`gemiterm`](https://github.com/Expert-Vision-Software/gemiterm) CLI | Must be installed and authenticated. Both bundled skills depend on it. |
-| **Optional** | Bun `>=1.0.0` | Required only for the CLI installer (`bunx opencode-gemiterm-skills install`) and the test suite (`bun test`). |
+| Component | Notes |
+|-----------|-------|
+| **[gemiterm](https://github.com/Expert-Vision-Software/gemiterm) CLI** | Must be installed and authenticated. Both skills depend on it. |
+| **Bun `>=1.0.0`** *(optional)* | Required only for the CLI installer (`bunx … install`) and test suite. |
 
-## Troubleshooting
+## Installation
 
-| Symptom | Likely cause | Fix |
-| --- | --- | --- |
-| Skill not in `<available_skills>` list | Not installed yet | Run `bunx opencode-gemiterm-skills install` (or `--scope global`) |
-| Skill not in `<available_skills>` list after install | `gemiterm` auth expired or incomplete | Run `gemiterm status` and re-authenticate if needed |
-| `bunx opencode-gemiterm-skills` not found | Bun `<1.0.0` or package not in PATH | Ensure Bun `>=1.0.0` is installed; try `npx opencode-gemiterm-skills` as fallback |
+### From npm
 
-## Install (file:// reference)
+```bash
+npm install opencode-gemiterm-skills
+```
 
-For local development against a checkout of this repo, reference the package directory directly from the consumer's `opencode.json`:
+Then add to your `opencode.json`:
 
 ```json
 {
-  "$schema": "https://opencode.ai/config.json",
-  "plugins": [
-    "file:///absolute/path/to/opencode-gemiterm-skills"
-  ]
+  "plugins": ["opencode-gemiterm-skills"]
 }
 ```
 
-This skips the npm install. OpenCode will auto-install skills from the local checkout on first load.
+### Local development
 
-## File layout
+Reference the package directory directly:
 
-```
-opencode-gemiterm-skills/
-├── .opencode/
-│   └── opencode.json              # self-config: skills.paths + permission.skill
-├── assets/
-│   └── skills/
-│       ├── gemiterm/
-│       │   ├── SKILL.md
-│       │   └── REFERENCE.md
-│       └── debate-with-gemini/
-│           ├── SKILL.md
-│           └── REFERENCE.md
-├── src/
-│   ├── cli.ts                     # CLI entry: install / uninstall / status
-│   ├── commands/
-│   │   ├── install.ts
-│   │   ├── uninstall.ts
-│   │   └── status.ts
-│   └── installer.ts               # core install logic
-├── tests/
-│   └── skills.test.ts             # smoke test
-├── .gitignore
-├── AGENTS.md
-├── CHANGELOG.md
-├── LICENSE
-├── README.md
-├── index.ts                       # module entry: re-exports plugin.ts
-├── package.json
-├── plugin.ts                      # plugin entry with config hook (auto-install on load)
-└── tsconfig.json
+```json
+{
+  "plugins": ["file:///absolute/path/to/opencode-gemiterm-skills"]
+}
 ```
 
-## How it works
+OpenCode auto-installs skills from the local checkout on first load.
 
-### Install command
+## Why this plugin?
 
-`bunx opencode-gemiterm-skills install` copies skill files to the target `skills/` directory and registers the package in `opencode.json`:
-
-- **Local** (default): copies to `{project}/.opencode/skills/{gemiterm,debate-with-gemini}/` and updates `{project}/.opencode/opencode.json`
-- **Global**: copies to `~/.config/opencode/skills/{gemiterm,debate-with-gemini}/` and updates `~/.config/opencode/opencode.json`
-
-It also pre-grants `permission.skill: "allow"` for both skills and writes a `.version` marker to skip re-install on subsequent loads.
-
-### Plugin auto-install
-
-When OpenCode loads the package via `opencode.json` plugins array, `plugin.ts` runs the same (local) install logic with a version-marker check — so the package auto-installs skills on first use if not already installed.
-
-### CLI commands
-
-| Command | Description |
-| --- | --- |
-| `bunx opencode-gemiterm-skills install` | Install skills locally (or `--scope global`) |
-| `bunx opencode-gemiterm-skills uninstall` | Remove installed skills |
-| `bunx opencode-gemiterm-skills status` | Check install status and version |
-
-`index.ts` is the module entry, a one-line re-export of `plugin.ts`.
-
-## Development
-
-Run the test suite:
-
-```bash
-bun test
-```
-
-The smoke test verifies:
-
-- Both `assets/skills/*/SKILL.md` files exist and parse as valid YAML frontmatter.
-- `name` matches the directory name.
-- `description` is non-empty and within the 1024-character limit.
-- The `metadata.requires: gemiterm` link on `debate-with-gemini` is preserved.
-- The `metadata.tool: gemiterm` link on `gemiterm` is preserved.
-- `.opencode/opencode.json` exists and registers at least one skill path.
-- `package.json` points `opencode.plugin` at `.opencode/opencode.json`.
-
-## Notes for consumers
-
-- The `metadata.requires: gemiterm` field is preserved verbatim on `debate-with-gemini`. OpenCode does not enforce skill-to-skill dependencies — the agent must check `metadata.requires` and the prerequisites above before invoking `debate-with-gemini`.
-- The `metadata.tool`, `metadata.requires`, and `metadata.workflow` fields are stored under the `metadata` map (which OpenCode recognises). Sub-keys beyond `metadata` itself are not formally specified in the OpenCode skill schema, so they may be ignored by some agents — this package treats them as documentation only.
-- The CLI is exposed as `opencode-gemiterm-skills` via the `bin` field, implemented in `src/cli.ts`. Run it with `bunx opencode-gemiterm-skills` or `npx opencode-gemiterm-skills`.
+- **No context switching** — access your Gemini conversations without leaving OpenCode.
+- **Zero-config debates** — let your agent argue both sides of a technical decision with real Gemini responses.
+- **Portable chat data** — export Gemini history to Markdown for grep, archival, or feeding into other tools.
+- **Lightweight** — pure skill bundle, no runtime dependencies, loads on demand.
 
 ## Acknowledgments
 
 - [OpenCode](https://opencode.ai) — plugin architecture and skill loader
-- [Bun](https://bun.sh) — fast JS runtime used as the package's CLI host
-- [DeepWiki](https://deepwiki.com) — research and context tool for codebase exploration
+- [gemiterm](https://github.com/Expert-Vision-Software/gemiterm) — underlying Gemini CLI
 
-## Publishing
+---
 
-This package is published to npm as `opencode-gemiterm-skills`. To cut a new release:
+<div align="center">
 
-```bash
-npm version patch   # or minor / major
-npm publish --access public
-```
+**[📦 Install from npm](https://www.npmjs.com/package/opencode-gemiterm-skills)** · **[🤝 Contribute](CONTRIBUTING.md)** · **[📄 License](LICENSE)**
 
-The `prepublishOnly` script runs `tsc --noEmit` and `bun test` before publishing.
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+</div>

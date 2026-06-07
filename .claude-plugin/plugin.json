@@ -1,0 +1,7 @@
+{
+  "name": "opencode-gemiterm-skills",
+  "skills": [
+    "./assets/skills/gemiterm",
+    "./assets/skills/debate-with-gemini"
+  ]
+}
