@@ -6,6 +6,8 @@
 
 Local OpenCode plugin package that bundles the `gemiterm` and `debate-with-gemini` skills for OpenCode agents. Install once and the skills are available to every OpenCode session on the machine.
 
+[`gemiterm`](https://github.com/Expert-Vision-Software/gemiterm) is a CLI for interacting with Google Gemini from the terminal — listing, fetching, exporting, and managing Gemini chat history. This plugin wraps it into OpenCode skills so agents can use Gemini conversational data directly in workflows.
+
 ## Bundled skills
 
 | Skill | Purpose |
@@ -33,7 +35,7 @@ For global install, skills are placed in `~/.config/opencode/skills/`. For local
 
 | | Component | Notes |
 | --- | --- | --- |
-| **Runtime** | `gemiterm` Python CLI | Must be installed and authenticated. Both bundled skills depend on it. |
+| **Runtime** | [`gemiterm`](https://github.com/Expert-Vision-Software/gemiterm) CLI | Must be installed and authenticated. Both bundled skills depend on it. |
 | **Optional** | Bun `>=1.0.0` | Required only for the CLI installer (`bunx opencode-gemiterm-skills install`) and the test suite (`bun test`). |
 
 ## Troubleshooting
@@ -106,7 +108,7 @@ It also pre-grants `permission.skill: "allow"` for both skills and writes a `.ve
 
 ### Plugin auto-install
 
-When OpenCode loads the package via `opencode.json` plugins array, `plugin.ts` runs the same install logic with a version-marker check — so the package auto-installs skills on first use if not already installed.
+When OpenCode loads the package via `opencode.json` plugins array, `plugin.ts` runs the same (local) install logic with a version-marker check — so the package auto-installs skills on first use if not already installed.
 
 ### CLI commands
 
