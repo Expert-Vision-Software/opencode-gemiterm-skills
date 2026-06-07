@@ -19,6 +19,9 @@ concurrency:
   group: release
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Create GitHub Release
@@ -109,4 +112,4 @@ jobs:
       - name: Publish to npm
         run: npm publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
