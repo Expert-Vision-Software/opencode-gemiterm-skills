@@ -20,7 +20,7 @@ gemiterm --version
 If missing:
 
 ```bash
-pip install gemiterm
+pipx install gemiterm
 gemiterm install-browser
 gemiterm auth
 ```

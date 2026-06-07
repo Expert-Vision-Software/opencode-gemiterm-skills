@@ -1,6 +1,6 @@
 {
   "name": "opencode-gemiterm-skills",
-  "version": "0.2.0",
+  "version": "0.5.0",
   "type": "module",
   "module": "index.ts",
   "description": "OpenCode plugin bundling the gemiterm and debate-with-gemini skills.",

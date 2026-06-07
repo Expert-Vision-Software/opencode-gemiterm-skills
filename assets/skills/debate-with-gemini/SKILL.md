@@ -30,7 +30,7 @@ User: "Debate gemini on for/against using X. Context: docs/arch.md. 5 turns."
 gemiterm status
 ```
 
-If not connected: `pip install gemiterm && gemiterm install-browser && gemiterm auth`
+If not connected: `pipx install gemiterm && gemiterm install-browser && gemiterm auth`
 
 ## Inputs
 
