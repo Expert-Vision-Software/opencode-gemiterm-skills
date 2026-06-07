@@ -77,13 +77,12 @@ describe("package self-config", () => {
     expect(skills.paths.length).toBeGreaterThan(0);
   });
 
-  test("package.json points opencode.plugin to .opencode/opencode.json", async () => {
+  test("package.json has no static opencode.plugin (plugin uses config hook instead)", async () => {
     const path = join(PACKAGE_ROOT, "package.json");
     const content = await readFile(path, "utf-8");
     const pkg = JSON.parse(content) as Record<string, unknown>;
     expect(pkg.name).toBe("opencode-gemiterm-skills");
-    const opencode = pkg.opencode as { plugin?: unknown } | undefined;
-    expect(opencode).toBeDefined();
-    expect(opencode?.plugin).toBe(".opencode/opencode.json");
+    // No static opencode.plugin — plugin installs skills via config hook at runtime
+    expect(pkg.opencode).toBeUndefined();
   });
 });

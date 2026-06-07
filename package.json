@@ -26,15 +26,11 @@
     "plugin.ts",
     "src",
     "assets",
-    ".opencode/opencode.json",
     "README.md",
     "AGENTS.md",
     "CHANGELOG.md",
     "LICENSE"
   ],
-  "opencode": {
-    "plugin": ".opencode/opencode.json"
-  },
   "scripts": {
     "check": "tsc --noEmit",
     "test": "bun test",
@@ -54,7 +50,7 @@
     "url": "https://github.com/expert-vision-software/opencode-gemiterm-skills/issues",
     "email": "support@expertvisionsoftware.com"
   },
-  "author": "opencode-gemiterm-skills contributors",
+  "author": "Expert Vision Software",
   "publishConfig": {
     "access": "public"
   }

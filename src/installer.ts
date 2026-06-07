@@ -1,6 +1,7 @@
 import { exists, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export type Scope = "local" | "global";
 
@@ -29,13 +30,13 @@ export interface StatusResult {
 const SKILL_NAMES = ["gemiterm", "debate-with-gemini"] as const;
 const PACKAGE_NAME = "opencode-gemiterm-skills";
 
-export async function getPackageVersion(): Promise<string> {
-  const content = await Bun.file(`${import.meta.dirname}/../package.json`).text();
-  return JSON.parse(content).version;
+function getPackageDir(): string {
+  return join(fileURLToPath(new URL("../", import.meta.url)));
 }
 
-function getPackageDir(): string {
-  return join(import.meta.dirname, "..");
+export async function getPackageVersion(): Promise<string> {
+  const content = await Bun.file(join(getPackageDir(), "package.json")).text();
+  return JSON.parse(content).version;
 }
 
 export function getGlobalConfigPath(): string {

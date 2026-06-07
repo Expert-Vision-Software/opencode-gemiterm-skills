@@ -1,14 +1,11 @@
 import type { Plugin } from "@opencode-ai/plugin";
-import { install, getPackageVersion } from "./src/installer.ts";
+import { install, getPackageVersion, getGlobalConfigPath } from "./src/installer.ts";
 import { join } from "node:path";
 
 const plugin: Plugin = async ({ directory }) => ({
   config: async () => {
     const version = await getPackageVersion();
-    const globalConfigPath = join(
-      process.env.XDG_CONFIG_HOME ?? join(require("node:os").homedir(), ".config"),
-      "opencode",
-    );
+    const globalConfigPath = getGlobalConfigPath();
 
     const isGlobal =
       directory === globalConfigPath || directory.startsWith(globalConfigPath + "/") ||
