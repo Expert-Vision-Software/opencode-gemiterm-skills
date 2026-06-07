@@ -2,25 +2,27 @@
 
 All notable changes to `opencode-gemiterm-skills` will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2026-06-06
+## [0.5.0] - 2026-06-07
+
+_Initial public release._
 
 ### Added
-- npm distribution support: `bin` field exposes `opencode-gemiterm-skills` CLI stub via `bunx` / `npx`
-- `engines: { "bun": ">=1.0.0" }` and `sideEffects: false` metadata
+- npm distribution support: `bin` field exposes `opencode-gemiterm-skills` CLI via `bunx` / `npx` (`install`, `uninstall`, `status` subcommands)
+- `engines: { "bun": ">=1.0.0" }` and `sideEffects: false` metadata in `package.json`
 - `homepage` and `author` fields in `package.json`
 - `prepublishOnly` script that runs `tsc --noEmit` and `bun test` before publish
 - Bun shebang (`#!/usr/bin/env bun`) on `index.ts` so the CLI stub is executable
-- README section for `npm install` install path (file:// install preserved as alternative)
-- README section documenting the publish flow
+- README: **Example use cases** section demonstrating both `gemiterm` and `debate-with-gemini` skills with sample prompts and agent responses
+- README: introduction blurb linking to the [`gemiterm` CLI repository](https://github.com/Expert-Vision-Software/gemiterm)
+- README: `gemiterm` CLI link in the Requirements table
 
 ### Changed
-- `package.json` `files` array now whitelists `.opencode/opencode.json` instead of the entire `.opencode/` directory, so the dev-only `node_modules`, `package.json`, and lockfile in `.opencode/` do not ship
-- `.opencode/opencode.json` (self-config) stripped of dev-only entries: removed `../.agents/skills` from `skills.paths`, removed the `plugin: ["opencode-architect"]` array, removed the empty `mcp: {}` block
-- `package.json` version bumped to `0.2.0`
-- Module/CLI refactor: `index.ts` is now a one-line re-export of `plugin.ts`; the CLI stub (version/help) moved to `src/cli.ts` with a `#!/usr/bin/env bun` shebang and dynamic version read from `package.json`. `package.json#bin` now points at `./src/cli.ts`; `package.json#files` now includes `"src"`; `tsconfig.json#include` now includes `"src/**/*.ts"`. This eliminates the hardcoded version string and matches the layout used by `opencode-intellisearch`.
+- `package.json` `files` array whitelists `.opencode/opencode.json` instead of the entire `.opencode/` directory, preventing dev-only artifacts from shipping
+- `.opencode/opencode.json` (self-config) stripped of dev-only entries (extra skills path, plugin array, empty MCP block)
+- Module/CLI refactor: `index.ts` is a one-line re-export of `plugin.ts`; CLI entry moved to `src/cli.ts` with dynamic version read from `package.json`; `package.json#bin` points at `./src/cli.ts`; `package.json#files` includes `"src"`; `tsconfig.json#include` includes `"src/**/*.ts"`
+- `package.json` version bumped to `0.5.0`
 
 ## [0.1.0] - 2026-06-06
 
