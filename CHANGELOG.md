@@ -4,6 +4,20 @@ All notable changes to `opencode-gemiterm-skills` will be documented in this fil
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-06-07
+
+### Added
+- `CONTRIBUTING.md` — developer-facing docs with architecture, file layout, coding rules, and troubleshooting (extracted from README)
+
+### Changed
+- **README rewrite** — refocused for end-users and SEO: HTML meta comment with keywords, centered hero header, streamlined examples with emoji headers, "Why this plugin?" value-proposition section, call-to-action footer
+- README generalized to be agent-agnostic: describes "any AI agent" instead of only OpenCode-specific framing; shows both `bunx` and `npx` install commands; "CLI install (any agent)" as the primary install method
+- `debate-with-gemini` skill frontmatter: removed `metadata.requires` field; added `compatibility` and `license` fields
+- `gemiterm` skill frontmatter: added `compatibility` and `license` fields
+
+### Removed
+- Test for `metadata.requires: gemiterm` on `debate-with-gemini` (field no longer exists)
+
 ## [0.5.0] - 2026-06-07
 
 _Initial public release._
