@@ -23,7 +23,7 @@ bun test
 
 The smoke test (`tests/skills.test.ts`) verifies:
 
-- Both `assets/skills/*/SKILL.md` files exist and parse as valid YAML frontmatter.
+- Both `skills/*/SKILL.md` files exist and parse as valid YAML frontmatter.
 - `name` matches the directory name.
 - `description` is non-empty and within the 1024-character limit.
 - The `metadata.requires: gemiterm` link on `debate-with-gemini` is preserved.
@@ -37,14 +37,13 @@ The smoke test (`tests/skills.test.ts`) verifies:
 opencode-gemiterm-skills/
 ├── .opencode/
 │   └── opencode.json              # self-config: skills.paths + permission.skill
-├── assets/
-│   └── skills/
-│       ├── gemiterm/
-│       │   ├── SKILL.md
-│       │   └── REFERENCE.md
-│       └── debate-with-gemini/
-│           ├── SKILL.md
-│           └── REFERENCE.md
+├── skills/
+│   ├── gemiterm/
+│   │   ├── SKILL.md
+│   │   └── REFERENCE.md
+│   └── debate-with-gemini/
+│       ├── SKILL.md
+│       └── REFERENCE.md
 ├── src/
 │   ├── cli.ts                     # CLI entry: install / uninstall / status
 │   ├── commands/
@@ -114,7 +113,7 @@ This skips the npm install. OpenCode will auto-install skills from the local che
 
 ## Coding rules
 
-1. **Skill frontmatter is the source of truth.** Do not edit `assets/skills/*/SKILL.md` frontmatter in ways that break the `name` / `description` contract.
+1. **Skill frontmatter is the source of truth.** Do not edit `skills/*/SKILL.md` frontmatter in ways that break the `name` / `description` contract.
 2. **The `metadata.requires: gemiterm` link** on `debate-with-gemini` must remain — consumers depend on it.
 3. **Only add code under `src/`** that supports the install/uninstall/status commands. This is a skill-bundling package, not a runtime library.
 

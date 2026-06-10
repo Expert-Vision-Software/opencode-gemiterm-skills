@@ -169,7 +169,7 @@ export async function install(
   }
 
   for (const name of SKILL_NAMES) {
-    const srcSkillDir = join(pkgDir, "assets", "skills", name);
+    const srcSkillDir = join(pkgDir, "skills", name);
     const destSkillDir = join(configBase, "skills", name);
     await copyDir(srcSkillDir, destSkillDir);
     skillPaths.push(destSkillDir);

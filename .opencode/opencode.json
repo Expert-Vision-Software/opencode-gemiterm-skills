@@ -3,7 +3,7 @@
     "plugin": ["opencode-architect"],
     "skills": {
         "paths": [
-            "../assets/skills"
+            "../skills"
         ]
     },
     "permission": {

@@ -7,7 +7,7 @@ const SKILL_NAMES = ["gemiterm", "debate-with-gemini"] as const;
 const DESCRIPTION_MAX = 1024;
 
 async function loadSkillFile(skillName: string, fileName: string): Promise<string> {
-  const path = join(PACKAGE_ROOT, "assets", "skills", skillName, fileName);
+  const path = join(PACKAGE_ROOT, "skills", skillName, fileName);
   return await readFile(path, "utf-8");
 }
 
