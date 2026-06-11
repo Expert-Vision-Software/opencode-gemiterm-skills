@@ -2,6 +2,8 @@
 
 Complete command reference for GemiTerm CLI. Loaded on demand by [SKILL.md](SKILL.md).
 
+> **Runtime note:** GemiTerm is a Bun-native application. All commands below assume `gemiterm` is available. If not globally installed, prefix every command with `bunx` (e.g. `bunx gemiterm list --format json`). See [SKILL.md](SKILL.md) > "Install & invocation" for the full resolution flow.
+
 ## Contents
 
 - [Commands](#commands)

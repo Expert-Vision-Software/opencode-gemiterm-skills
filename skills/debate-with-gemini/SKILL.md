@@ -6,6 +6,7 @@ compatibility: opencode, claude-code, and any skill-compatible agent
 metadata:
   tool: gemiterm
   workflow: debate
+  runtime: bun
 ---
 
 # Debate with Gemini
@@ -16,7 +17,7 @@ metadata:
 User: "Debate gemini on for/against using X. Context: docs/arch.md. 5 turns."
 
 1. skill("gemiterm")                              — load CLI commands
-2. gemiterm status                                — verify auth
+2. gemiterm status                                — verify auth (or bunx gemiterm status)
 3. Read docs/arch.md, build seeding prompt
 4. gemiterm new "You argue AGAINST X. [context]"  — seed Gemini, capture chat_id
 5. Build opening argument for the FOR position
@@ -26,11 +27,24 @@ User: "Debate gemini on for/against using X. Context: docs/arch.md. 5 turns."
 
 ## Prerequisites
 
+GemiTerm is a **Bun-native** CLI. Before running any commands, resolve the executable:
+
+1. `gemiterm --version` — if this succeeds, use `gemiterm` directly.
+2. If not found, use `bunx gemiterm` as a transparent fallback for all commands.
+3. If `bun` is not installed, print the platform-appropriate install command and stop:
+
+| Platform | Command |
+|----------|---------|
+| macOS / Linux | `curl -fsSL https://bun.sh/install \| bash` |
+| Windows | `powershell -c "irm bun.sh/install.ps1 \| iex"` |
+
+Then:
+
 ```bash
 gemiterm status
 ```
 
-If not connected: `pipx install gemiterm && gemiterm install-browser && gemiterm auth`
+If not connected: install gemiterm globally (`bun install gemiterm -g`), then `gemiterm install-browser && gemiterm auth`.
 
 ## Inputs
 

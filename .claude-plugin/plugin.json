@@ -1,7 +1,0 @@
-{
-  "name": "gemiterm-skills",
-  "skills": [
-    "./skills/debate-with-gemini",
-    "./skills/gemiterm"
-  ]
-}

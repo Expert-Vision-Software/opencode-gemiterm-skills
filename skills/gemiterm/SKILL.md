@@ -1,26 +1,55 @@
 ---
 name: gemiterm
-description: Google Gemini Terminal CLI wrapper for listing chats, fetching transcripts, exporting conversations, and managing profiles via the gemiterm Python CLI. Use when the user asks to read, list, export, or interact with Gemini chat history from a terminal, or invokes "gemiterm" commands.
+description: Google Gemini Terminal CLI wrapper for listing chats, fetching transcripts, exporting conversations, and managing profiles via the gemiterm Bun-native CLI. Use when the user asks to read, list, export, or interact with Gemini chat history from a terminal, or invokes "gemiterm" commands.
 license: MIT
 compatibility: opencode, claude-code, and any skill-compatible agent
 metadata:
   tool: gemiterm
+  runtime: bun
 ---
 
 # GemiTerm — Google Gemini Terminal CLI
 
 GemiTerm provides terminal access to Google Gemini chat history: list, fetch, export, delete, and manage profiles. Commands that emit `--format json` are automation-friendly; `auth` and `continue` require interactive flows.
 
-## Install check
+## Install & invocation
+
+GemiTerm is a **Bun-native** CLI. All `gemiterm` commands below assume the tool is available. The agent must resolve the executable at runtime:
+
+### 1. Check if globally installed
 
 ```bash
 gemiterm --version
 ```
 
-If missing:
+If this succeeds, use `gemiterm` directly for all commands.
+
+### 2. Fallback: `bunx gemiterm`
+
+If not globally installed, use `bunx gemiterm` as a transparent fallback. This downloads and runs the latest version on first use:
 
 ```bash
-pipx install gemiterm
+bunx gemiterm --version
+bunx gemiterm list --format json
+bunx gemiterm auth
+# … etc — prefix every command with "bunx"
+```
+
+### 3. Bun not installed
+
+If `bun` is not available either, print the appropriate install command for the user's platform and stop:
+
+| Platform | Command |
+|----------|---------|
+| macOS / Linux | `curl -fsSL https://bun.sh/install \| bash` |
+| Windows | `powershell -c "irm bun.sh/install.ps1 \| iex"` |
+
+After the user installs Bun, re-run from step 1. Auto-detect the platform from `$OSTYPE`, `uname`, or `process.platform`.
+
+**To install gemiterm globally (optional):**
+
+```bash
+bun install gemiterm -g
 gemiterm install-browser
 gemiterm auth
 ```

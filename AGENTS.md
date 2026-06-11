@@ -1,10 +1,11 @@
 # AGENTS.md - opencode-gemiterm-skills
 
 <critical_rules priority="highest">
-1. The bundled `debate-with-gemini` skill depends on the `gemiterm` Python CLI being installed and authenticated on the host.
+1. The bundled `debate-with-gemini` skill depends on the `gemiterm` Bun-native CLI being installed (or available via `bunx gemiterm`) and authenticated on the host.
 2. This package ships a real installer (`src/installer.ts`) that copies skill assets to the consumer's `.opencode/skills/` and registers them in `opencode.json`. The `src/cli.ts` is the CLI entry point (install/uninstall/status subcommands), resolved by `package.json#bin`. Only add code under `src/` that supports the install/uninstall/status commands.
 3. Skill frontmatter is the source of truth. Do not edit `skills/*/SKILL.md` frontmatter in ways that break the `name` / `description` contract.
-4. The `metadata.requires: gemiterm` link on `debate-with-gemini` must remain so consumers know to install the Python CLI first.
+4. The `metadata.requires: gemiterm` link on `debate-with-gemini` must remain so consumers know to install the CLI first.
+5. GemiTerm is a Bun-native CLI — all skill documents assume Bun as the runtime. Do not reference Python, `pipx`, or `pip` install paths.
 </critical_rules>
 
 <context_hierarchy>
@@ -21,8 +22,8 @@
 </role>
 
 <bundled_skills>
-<skill name="gemiterm" path="skills/gemiterm/SKILL.md" requires="Python CLI gemiterm" />
-<skill name="debate-with-gemini" path="skills/debate-with-gemini/SKILL.md" requires="gemiterm skill + Python CLI gemiterm" />
+<skill name="gemiterm" path="skills/gemiterm/SKILL.md" requires="Bun-native CLI gemiterm" />
+<skill name="debate-with-gemini" path="skills/debate-with-gemini/SKILL.md" requires="gemiterm skill + Bun-native CLI gemiterm" />
 </bundled_skills>
 
 <self_config>
@@ -53,7 +54,7 @@
 <use_case>Local development against a checkout of this repo</use_case>
 </file_fallback>
 <prerequisites>
-  - pip install gemiterm
+  - bun install gemiterm -g
   - gemiterm install-browser
   - gemiterm auth
 </prerequisites>

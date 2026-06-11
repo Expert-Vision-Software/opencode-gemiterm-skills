@@ -4,16 +4,21 @@ All notable changes to `opencode-gemiterm-skills` will be documented in this fil
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.2] - 2026-06-10
+## [0.6.0] - 2026-06-10
 
 ### Changed
-- **Skill directory layout** — moved `assets/skills/{gemiterm,debate-with-gemini}` → `skills/{gemiterm,debate-with-gemini}` so both skills sit at the standard `skills/<name>/SKILL.md` path recognized by Vercel's `skills` CLI (and the broader skills ecosystem). Previously the package relied on the recursive fallback, which inconsistently surfaced only one of the two skills when listed with `npx skills <repo> --list`.
+- **GemiTerm is now a Bun-native CLI** — the underlying `gemiterm` CLI has been rewritten to run on Bun instead of Python. All skill documents updated to reflect the new runtime: skills first check for a global `gemiterm` install, fall back to `bunx gemiterm` for transparent npx-style invocation, and if Bun itself is missing emit platform-aware install instructions (`curl -fsSL https://bun.sh/install | bash` on macOS/Linux, `powershell -c "irm bun.sh/install.ps1 | iex"` on Windows) before erroring out.
+- Added `metadata.runtime: bun` to both skill frontmatter entries.
+- Updated `debate-with-gemini` REFERENCE.md subagent template to mention `bunx gemiterm` fallback for every command and added `bunx gemiterm *` to the permissions block.
+- **Rewrote both skill documents** — `gemiterm` and `debate-with-gemini` SKILL.md and REFERENCE.md now contain richer, more structured content: the `debate-with-gemini` skill includes tactical patterns (Concede-and-Counter, Force Concrete Example, Decision Matrix, Reframe the Question, Line-in-the-Sand), explicit stopping criteria, and a structured debate-report format; the `gemiterm` skill has an expanded command reference with detailed flags and common automation patterns.
+- **Directory restructure** — moved `assets/skills/{gemiterm,debate-with-gemini}` → `skills/{gemiterm,debate-with-gemini}` so both skills sit at the standard `skills/<name>/SKILL.md` path recognized by Vercel's `skills` CLI (and the broader skills ecosystem).
 - `.claude-plugin/plugin.json` and `.opencode/opencode.json` updated to reference the new `./skills` path; `package.json#files` now whitelists `skills` instead of `assets`.
 - `src/installer.ts` and `tests/skills.test.ts` source-path constants updated accordingly.
 - Docs (`AGENTS.md`, `CONTRIBUTING.md`) updated to reflect the new layout.
 
 ### Removed
 - `assets/` directory (no longer needed; skills moved to repo root).
+- All references to `pipx install gemiterm` and Python-based install paths.
 
 ## [0.5.1] - 2026-06-07
 

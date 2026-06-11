@@ -6,8 +6,8 @@ Thanks for your interest in contributing! This guide covers the technical intern
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) `>=1.0.0` — required for the CLI installer and test suite
-- [gemiterm](https://github.com/Expert-Vision-Software/gemiterm) CLI — installed and authenticated (for integration testing)
+- [Bun](https://bun.sh) `>=1.0.0` — required for the CLI installer, test suite, and the gemiterm CLI
+- [gemiterm](https://github.com/Expert-Vision-Software/gemiterm) CLI — a Bun-native app; install with `bun install gemiterm -g`, then `gemiterm install-browser && gemiterm auth`
 
 ### Install dependencies
 
@@ -115,7 +115,8 @@ This skips the npm install. OpenCode will auto-install skills from the local che
 
 1. **Skill frontmatter is the source of truth.** Do not edit `skills/*/SKILL.md` frontmatter in ways that break the `name` / `description` contract.
 2. **The `metadata.requires: gemiterm` link** on `debate-with-gemini` must remain — consumers depend on it.
-3. **Only add code under `src/`** that supports the install/uninstall/status commands. This is a skill-bundling package, not a runtime library.
+3. **GemiTerm is a Bun-native CLI.** All skill documents assume Bun as the runtime. Do not reference Python, `pipx`, or `pip` install paths.
+4. **Only add code under `src/`** that supports the install/uninstall/status commands. This is a skill-bundling package, not a runtime library.
 
 ## Troubleshooting
 

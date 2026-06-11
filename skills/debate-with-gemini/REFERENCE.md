@@ -2,6 +2,8 @@
 
 Subagent prompt template, tactical patterns, and report format for the `debate-with-gemini` skill.
 
+> **Runtime note:** GemiTerm is a Bun-native CLI. Replace every `gemiterm` invocation with `bunx gemiterm` if the tool is not globally installed. See execution-loop details below.
+
 ---
 
 ## Subagent Prompt Template
@@ -30,14 +32,17 @@ For each turn:
 1. Send your message:
    gemiterm continue "{{GEMINI_CHAT_ID}}" "your message here"
 
+   If gemiterm is not globally installed, use:
+   bunx gemiterm continue "{{GEMINI_CHAT_ID}}" "your message here"
+
    Wait for Gemini's response written to the console.
 2. Analyze the response — concessions? New arguments? Weaknesses?
 3. Craft next response using Tactical Patterns below
 4. Repeat until turn limit or stop condition
 
-Prefer `gemiterm continue` because it returns Gemini's last response inline and avoids an extra round-trip.
+Prefer `gemiterm continue` (or `bunx gemiterm continue`) because it returns Gemini's last response inline and avoids an extra round-trip.
 
-Use `gemiterm fetch "{{GEMINI_CHAT_ID}}" --format json` ONLY if console output has parsing issues or times out.
+Use `gemiterm fetch "{{GEMINI_CHAT_ID}}" --format json` (or `bunx gemiterm fetch ...`) ONLY if console output has parsing issues or times out.
 
 ## Stopping Criteria
 - {{TURN_LIMIT}} turns completed
@@ -108,12 +113,13 @@ If the opencode config lacks bash permissions for `gemiterm`, add:
 {
   "permission": {
     "bash": {
-      "gemiterm *": "allow"
+      "gemiterm *": "allow",
+      "bunx gemiterm *": "allow"
     }
   }
 }
 ```
 
-This allows the subagent to run `gemiterm new`, `gemiterm continue`, `gemiterm fetch`, and `gemiterm list` without prompting.
+This allows the subagent to run `gemiterm new`, `gemiterm continue`, `gemiterm fetch`, `gemiterm list`, and their `bunx gemiterm` equivalents without prompting.
 
 Drop this into the top-level `permission` object in `opencode.json`. For per-agent override, nest it under `agent.<name>.permission`.
