@@ -35,6 +35,10 @@ For each turn:
    If gemiterm is not globally installed, use:
    bunx gemiterm continue "{{GEMINI_CHAT_ID}}" "your message here"
 
+   For an unusually long turn, write it to a file and use `--prompt-file`/`-f`:
+   gemiterm continue "{{GEMINI_CHAT_ID}}" -f ./turn.md
+   (positional messages that exceed the ~2048-char limit auto-spill to a temp file anyway)
+
    Wait for Gemini's response written to the console.
 2. Analyze the response — concessions? New arguments? Weaknesses?
 3. Craft next response using Tactical Patterns below

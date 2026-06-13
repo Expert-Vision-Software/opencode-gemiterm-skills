@@ -18,8 +18,8 @@ User: "Debate gemini on for/against using X. Context: docs/arch.md. 5 turns."
 
 1. skill("gemiterm")                              — load CLI commands
 2. gemiterm status                                — verify auth (or bunx gemiterm status)
-3. Read docs/arch.md, build seeding prompt
-4. gemiterm new "You argue AGAINST X. [context]"  — seed Gemini, capture chat_id
+3. Read {BG_CONTEXT}, build seeding prompt → write it to seed.md
+4. gemiterm new -f seed.md  — seed Gemini ("You argue AGAINST X. [context]"), capture chat_id
 5. Build opening argument for the FOR position
 6. Spawn subagent with template from REFERENCE.md
 7. Subagent runs N turns, returns Debate Report
@@ -69,7 +69,7 @@ If any required input is missing, ask the user via the standard opencode chat in
    - Assign Gemini its stance
    - Set debate rules (technical claims only, acknowledge valid points, numbered arguments)
    - Request an opening argument
-3. `gemiterm new "seeding prompt"` — creates a chat, sends the first message, writes the response to the console, and returns the chat_id (`c_XXXXXXXXXXXX`); read Gemini's opening response from the same console output
+3. Write the seeding prompt to a temp file, then `gemiterm new -f ./seeding.md` — creates a chat, sends the prompt, writes the response to the console, and returns the chat_id (`c_XXXXXXXXXXXX`); read Gemini's opening response from the same console output. Use **`--prompt-file`** because seeding prompts carry large context (≤200 words of background) that exceeds the ~2048-char shell limit. (A positional message that exceeds the limit auto-spills to a temp file, but writing a file you control is cleaner and avoids any shell-quoting issues.)
 
 **Fallback:** If `gemiterm new` fails, ask the user to create a chat in the Gemini UI, paste the seeding prompt, and provide the chat_id. Then continue with Flow B.
 

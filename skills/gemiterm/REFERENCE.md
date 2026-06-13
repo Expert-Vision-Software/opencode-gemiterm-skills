@@ -15,6 +15,7 @@ Complete command reference for GemiTerm CLI. Loaded on demand by [SKILL.md](SKIL
   - [`gemiterm delete <chat_id>`](#gemiterm-delete-chat_id)
   - [`gemiterm status`](#gemiterm-status)
   - [`gemiterm profile`](#gemiterm-profile)
+  - [`gemiterm new`](#gemiterm-new)
   - [`gemiterm continue <chat_id>`](#gemiterm-continue-chat_id)
   - [`gemiterm install-browser`](#gemiterm-install-browser)
 - [Global Flags](#global-flags)
@@ -59,7 +60,8 @@ gemiterm list [options]
 - `--format json|text` - Output format (default: text)
 - `--limit N` - Maximum number of chats to return
 - `--reverse` - Reverse sort order
-- `--all-profiles` - List chats across all configured profiles
+- `--profile <name>` / `-p` - Filter to a single named profile; enables a **Profile** column in text output
+- `--all-profiles` - Merge chats across every configured profile (also enables the Profile column)
 - `--sort recent|oldest|alpha` - Sort order (default: recent)
 - `--out <path>` / `-o` - Write the listing to a file instead of stdout
 
@@ -72,7 +74,15 @@ gemiterm list --format json --limit 5 --reverse
 gemiterm list --all-profiles --limit 10 --format json
 gemiterm list --sort oldest --format json
 gemiterm list --all-profiles --sort alpha --format json
+gemiterm list --profile work
+gemiterm list -p personal --sort recent --limit 20
+gemiterm list --profile work --format json --out work.json
 ```
+
+**`--profile` vs `--all-profiles`:**
+
+- `--profile <name>` narrows the list to one profile; `--all-profiles` merges every profile. Both surface the **Profile** column, which a plain `gemiterm list` hides.
+- `--profile` composes with `--search`, `--sort`, `--limit`, `--offset`, `--format`, `--out`, `--after`, `--before`.
 
 **Output (JSON):**
 ```json
@@ -290,22 +300,68 @@ gemiterm profile --delete old-profile
 
 ---
 
-### `gemiterm continue <chat_id>`
+### `gemiterm new`
 
-Continue a chat (interactive mode).
+Start a new chat. With a message it is a one-shot send; without a message it opens the interactive REPL.
 
 **Usage:**
 ```bash
-gemiterm continue <chat_id>
+gemiterm new [message] [options]
 ```
 
 **Arguments:**
-- `chat_id` - The Gemini chat_id (required)
+- `message` - Optional positional message for the first turn. Mutually exclusive with `--prompt-file`.
 
-**Notes:**
-- Interactive command not suitable for automation
-- Opens REPL for continued chat
-- Requires manual input
+**Flags:**
+- `--prompt-file <path>` / `-f` - Read the message from a file instead of a positional argument, bypassing the ~2048 UTF-16 code-unit shell limit. Error if a positional message is also given.
+- `--format json|text` - Output format (default: text)
+- `--profile <name>` - Run under a specific profile (global flag)
+
+**Behavior:**
+- Message **or** `--prompt-file` → seeds the chat, prints Gemini's reply and the new chat_id (e.g. `c_XXXXXXXXXXXX`) to stdout (automation-friendly).
+- Neither → drops into the interactive REPL (manual use only).
+
+**Examples:**
+```bash
+gemiterm new "Hello, Gemini!"               # one-shot; prints reply + chat_id
+gemiterm new -f ./prompt.md                  # long prompt from file
+gemiterm new -f ./prompt.md --profile work   # under a profile
+gemiterm new                                 # interactive REPL
+```
+
+> **Auto-spillover:** a positional message that exceeds the limit is transparently written to a temp file, sent, and deleted — so `--prompt-file` is only needed when you control the file yourself.
+
+---
+
+### `gemiterm continue <chat_id>`
+
+Continue (or resume) a chat. With a message it is a one-shot send; without a message it opens the interactive REPL.
+
+**Usage:**
+```bash
+gemiterm continue <chat_id> [message] [options]
+```
+
+**Arguments:**
+- `chat_id` - The Gemini chat_id / conversation_id (required)
+- `message` - Optional positional message to send. Mutually exclusive with `--prompt-file`.
+
+**Flags:**
+- `--prompt-file <path>` / `-f` - Read the message from a file instead of a positional argument, bypassing the ~2048 UTF-16 code-unit shell limit. Error if a positional message is also given.
+- `--format json|text` - Output format (default: text)
+
+**Behavior:**
+- Message **or** `--prompt-file` → sends it, prints Gemini's reply to stdout (automation-friendly).
+- Neither → drops into the interactive REPL (manual use only).
+
+**Examples:**
+```bash
+gemiterm continue abc123def456 "Follow-up question"   # one-shot
+gemiterm continue abc123def456 -f ./follow-up.md      # long message from file
+gemiterm continue abc123def456                        # interactive REPL
+```
+
+> **Auto-spillover:** a positional message that exceeds the limit is transparently written to a temp file, sent, and deleted.
 
 ---
 
