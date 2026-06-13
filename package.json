@@ -1,6 +1,6 @@
 {
   "name": "opencode-gemiterm-skills",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "type": "module",
   "module": "index.ts",
   "description": "AI agent skills for Google Gemini — list, search, export Gemini chats and run structured debates with Gemini. Works with OpenCode, Claude Code, and any skill-compatible AI agent.",
