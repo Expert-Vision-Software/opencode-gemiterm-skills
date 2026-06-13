@@ -77,3 +77,52 @@ describe("package self-config", () => {
     expect(pkg.opencode).toBeUndefined();
   });
 });
+
+describe("plugin entry normalization", () => {
+  const { normalizePluginName, isOurPluginEntry } =
+    require(join(PACKAGE_ROOT, "src", "installer.ts")) as typeof import("../src/installer");
+
+  test("strips @latest and other version specs", () => {
+    expect(normalizePluginName("opencode-gemiterm-skills@latest")).toBe(
+      "opencode-gemiterm-skills",
+    );
+    expect(normalizePluginName("opencode-gemiterm-skills@1.2.3")).toBe(
+      "opencode-gemiterm-skills",
+    );
+    expect(normalizePluginName("opencode-gemiterm-skills")).toBe(
+      "opencode-gemiterm-skills",
+    );
+  });
+
+  test("is case-insensitive", () => {
+    expect(normalizePluginName("Opencode-Gemiterm-Skills")).toBe(
+      "opencode-gemiterm-skills",
+    );
+    expect(normalizePluginName("OPENCODE-GEMITERM-SKILLS")).toBe(
+      "opencode-gemiterm-skills",
+    );
+  });
+
+  test("trims surrounding whitespace", () => {
+    expect(normalizePluginName("  opencode-gemiterm-skills  ")).toBe(
+      "opencode-gemiterm-skills",
+    );
+  });
+
+  test("does not treat scoped package leading @ as a version", () => {
+    expect(normalizePluginName("@scope/pkg@1.0.0")).toBe("@scope/pkg");
+    expect(normalizePluginName("@scope/pkg")).toBe("@scope/pkg");
+  });
+
+  test("isOurPluginEntry matches variants of our package", () => {
+    expect(isOurPluginEntry("opencode-gemiterm-skills")).toBe(true);
+    expect(isOurPluginEntry("opencode-gemiterm-skills@latest")).toBe(true);
+    expect(isOurPluginEntry("Opencode-Gemiterm-Skills@2.0.0")).toBe(true);
+  });
+
+  test("isOurPluginEntry rejects unrelated packages", () => {
+    expect(isOurPluginEntry("opencode-architect")).toBe(false);
+    expect(isOurPluginEntry("some-other-pkg@latest")).toBe(false);
+    expect(isOurPluginEntry("@scope/opencode-gemiterm-skills")).toBe(false);
+  });
+});

@@ -37,14 +37,15 @@ Both skills are loaded on demand. Metadata (name + description) is pre-loaded at
 ## Quick start
 
 ```bash
-# Install skills via bunx
+# Install via skills.sh
+npx skills add expert-vision-software/opencode-gemiterm-skills [--skill debate-with-gemini --skill gemiterm]
+
+# Or with bunx
 bunx opencode-gemiterm-skills install [--scope global]
 
 # Or with npx
 npx opencode-gemiterm-skills install [--scope global]
 
-# Or skills.sh
-npx skills add expert-vision-software/opencode-gemiterm-skills --skill [gemiterm/debate-with-gemini]
 ```
 
 That's it — skills are available immediately.
@@ -106,6 +107,9 @@ Gemini conceded on the replication point but raised WAL-mode mitigations.
 ### CLI install (any agent)
 
 ```bash
+# Install via skills.sh
+npx skills add expert-vision-software/opencode-gemiterm-skills [--skill debate-with-gemini --skill gemiterm]
+
 # Via bunx
 bunx opencode-gemiterm-skills install
 

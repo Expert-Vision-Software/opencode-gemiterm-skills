@@ -30,6 +30,33 @@ export interface StatusResult {
 const SKILL_NAMES = ["gemiterm", "debate-with-gemini"] as const;
 const PACKAGE_NAME = "opencode-gemiterm-skills";
 
+/**
+ * Normalize a plugin entry to its bare, lowercased package name.
+ *
+ * Plugin entries may carry a version spec (e.g. "pkg@latest",
+ * "pkg@1.2.3") and arbitrary casing. This strips any trailing
+ * "@version" and lowercases the result so that "opencode-gemiterm-skills",
+ * "Opencode-Gemiterm-Skills", and "opencode-gemiterm-skills@latest" all
+ * resolve to the same canonical name.
+ */
+export function normalizePluginName(entry: string): string {
+  let name = entry.trim().toLowerCase();
+  const atIdx = name.indexOf("@");
+  if (atIdx === 0) {
+    // Scoped package ("@scope/pkg"): the version separator is the second "@".
+    const secondAt = name.indexOf("@", 1);
+    if (secondAt !== -1) name = name.slice(0, secondAt);
+  } else if (atIdx !== -1) {
+    // Unscoped package: everything after the first "@" is a version spec.
+    name = name.slice(0, atIdx);
+  }
+  return name;
+}
+
+export function isOurPluginEntry(entry: string): boolean {
+  return normalizePluginName(entry) === PACKAGE_NAME.toLowerCase();
+}
+
 function getPackageDir(): string {
   return join(fileURLToPath(new URL("../", import.meta.url)));
 }
@@ -100,7 +127,7 @@ async function addPluginToConfig(configPath: string): Promise<boolean> {
   const config = await readJsonConfig(configPath);
   if (!config.plugin) config.plugin = [];
   const plugins = config.plugin as string[];
-  if (plugins.includes(PACKAGE_NAME)) return false;
+  if (plugins.some(isOurPluginEntry)) return false;
   plugins.push(PACKAGE_NAME);
   await mkdir(join(configPath, ".."), { recursive: true });
   await writeFile(configPath, JSON.stringify(config, null, 2));
@@ -111,10 +138,10 @@ async function removePluginFromConfig(configPath: string): Promise<boolean> {
   const config = await readJsonConfig(configPath);
   if (!config.plugin) return false;
   const plugins = config.plugin as string[];
-  const idx = plugins.indexOf(PACKAGE_NAME);
-  if (idx === -1) return false;
-  plugins.splice(idx, 1);
-  if (plugins.length === 0) delete config.plugin;
+  const filtered = plugins.filter((p) => !isOurPluginEntry(p));
+  if (filtered.length === plugins.length) return false;
+  if (filtered.length === 0) delete config.plugin;
+  else config.plugin = filtered;
   await mkdir(join(configPath, ".."), { recursive: true });
   await writeFile(configPath, JSON.stringify(config, null, 2));
   return true;
@@ -123,7 +150,7 @@ async function removePluginFromConfig(configPath: string): Promise<boolean> {
 async function isPluginInConfig(configPath: string): Promise<boolean> {
   const config = await readJsonConfig(configPath);
   if (!config.plugin) return false;
-  return (config.plugin as string[]).includes(PACKAGE_NAME);
+  return (config.plugin as string[]).some(isOurPluginEntry);
 }
 
 async function checkMigrationNeeded(projectDir: string) {
