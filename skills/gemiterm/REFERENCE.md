@@ -61,6 +61,7 @@ gemiterm list [options]
 - `--reverse` - Reverse sort order
 - `--all-profiles` - List chats across all configured profiles
 - `--sort recent|oldest|alpha` - Sort order (default: recent)
+- `--out <path>` / `-o` - Write the listing to a file instead of stdout
 
 **Examples:**
 ```bash
@@ -102,11 +103,13 @@ gemiterm fetch <chat_id> [options]
 
 **Flags:**
 - `--format json|text` - Output format (default: text)
+- `--out <path>` / `-o` - Write transcript to a file instead of stdout
 
 **Examples:**
 ```bash
 gemiterm fetch abc123def456
 gemiterm fetch abc123def456 --format json
+gemiterm fetch abc123def456 --format json --out /tmp/chat.json
 ```
 
 **Output (JSON):**
@@ -139,20 +142,20 @@ Export a chat to a file.
 
 **Usage:**
 ```bash
-gemiterm export <chat_id> --output <path>
+gemiterm export <chat_id> --out <path>
 ```
 
 **Arguments:**
 - `chat_id` - The Gemini chat_id (required)
 
 **Flags:**
-- `--output <path>` - Output file path (required)
+- `--out <path>` / `-o` - Output file path (required)
 - `--format md|txt` - Export format (default: md)
 
 **Examples:**
 ```bash
-gemiterm export abc123def456 --output /tmp/chat.md
-gemiterm export abc123def456 --output /tmp/chat.txt --format txt
+gemiterm export abc123def456 --out /tmp/chat.md
+gemiterm export abc123def456 --out /tmp/chat.txt --format txt
 ```
 
 **Output Format (Markdown):**
@@ -174,19 +177,19 @@ Export all chats to a directory.
 
 **Usage:**
 ```bash
-gemiterm export-all --output <directory>
+gemiterm export-all --out-dir <directory>
 ```
 
 **Flags:**
-- `--output <directory>` - Output directory path (required)
+- `--out-dir <directory>` / `-o` - Output directory path (required)
 - `--format md|txt` - Export format (default: md)
 - `--parallel N` - Number of parallel exports (default: 4)
 
 **Examples:**
 ```bash
-gemiterm export-all --output /tmp/gemini/
-gemiterm export-all --output /tmp/chats/ --format txt
-gemiterm export-all --output /tmp/backup/ --parallel 2
+gemiterm export-all --out-dir /tmp/gemini/
+gemiterm export-all --out-dir /tmp/chats/ --format txt
+gemiterm export-all --out-dir /tmp/backup/ --parallel 2
 ```
 
 **Output Structure:**

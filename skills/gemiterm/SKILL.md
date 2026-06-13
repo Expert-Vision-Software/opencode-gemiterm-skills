@@ -58,10 +58,10 @@ gemiterm auth
 
 | Command | Purpose |
 |---------|---------|
-| `gemiterm list [--all-profiles] [--limit N] [--sort recent\|oldest\|alpha] [--format json]` | List chats with metadata |
-| `gemiterm fetch <chat_id> [--format json]` | Fetch full transcript for one chat |
-| `gemiterm export <chat_id> --output <path> [--format md\|txt]` | Export one chat to a file |
-| `gemiterm export-all --output <dir> [--format md\|txt] [--parallel N]` | Bulk export all chats to a directory |
+| `gemiterm list [--all-profiles] [--limit N] [--sort recent\|oldest\|alpha] [--format json] [--out <path>]` | List chats with metadata |
+| `gemiterm fetch <chat_id> [--format json] [--out <path>]` | Fetch full transcript for one chat |
+| `gemiterm export <chat_id> --out <path> [--format md\|txt]` | Export one chat to a file |
+| `gemiterm export-all --out-dir <dir> [--format md\|txt] [--parallel N]` | Bulk export all chats to a directory |
 | `gemiterm delete <chat_id> [--confirm]` | Delete one chat (irreversible) |
 | `gemiterm status [--format json]` | Show auth status and active profile |
 | `gemiterm profile list\|default <name>\|add <name>\|delete <name>\|rename <name> <new_name>` | Manage Gemini profiles |
@@ -77,7 +77,8 @@ gemiterm auth
 |------|--------|
 | `--format json` | Machine-readable JSON for automation |
 | `--format text` | Human-readable text (default for most commands) |
-| `--output <path>` | Write export to file (Markdown by default) |
+| `--out <path>` / `-o` | Write output to a file (`fetch`, `list`, `export`); Markdown by default for `export` |
+| `--out-dir <dir>` / `-o` | Output directory for `export-all` |
 | `--format md\|txt` | Export format for `export` and `export-all` (default: `md`) |
 
 ## Common patterns
@@ -90,7 +91,7 @@ gemiterm list --format json | jq '.[] | select(.title | test("keyword"))'
 **Export one chat:**
 ```bash
 gemiterm fetch <chat_id> --format json > /tmp/chat.json
-gemiterm export <chat_id> --output /tmp/chat.md
+gemiterm export <chat_id> --out /tmp/chat.md
 ```
 
 **Bulk analyze:**
