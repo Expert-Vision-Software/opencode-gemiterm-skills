@@ -4,6 +4,15 @@ All notable changes to `opencode-gemiterm-skills` will be documented in this fil
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.2] - 2026-06-12
+
+### Fixed
+- `install` no longer adds a duplicate plugin entry when `opencode-gemiterm-skills` is already present under a different form (e.g. `opencode-gemiterm-skills@latest` or different casing). Added a shared `normalizePluginName`/`isOurPluginEntry` helper that strips version tags (`@latest`, `@1.2.3`) and lowercases before matching, used by `addPluginToConfig`, `removePluginFromConfig`, and `isPluginInConfig`. Scoped packages (`@scope/pkg`) are handled correctly so the leading `@` isn't mistaken for a version separator.
+
+### Added
+- Exported `normalizePluginName` and `isOurPluginEntry` from `src/installer.ts` for direct unit testing.
+- 6 new tests in `tests/skills.test.ts` covering version-spec stripping, case-insensitivity, whitespace trimming, scoped-package handling, and matching/rejecting the right entries.
+
 ## [0.6.1] - 2026-06-12
 
 ### Changed
