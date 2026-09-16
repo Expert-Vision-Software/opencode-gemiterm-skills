@@ -74,11 +74,11 @@ opencode-gemiterm-skills/
 - **Local** (default): copies to `{project}/.opencode/skills/{gemiterm,debate-with-gemini}/` and updates `{project}/.opencode/opencode.json`
 - **Global**: copies to `~/.config/opencode/skills/{gemiterm,debate-with-gemini}/` and updates `~/.config/opencode/opencode.json`
 
-It also pre-grants `permission.skill: "allow"` for both skills and writes a `.version` marker to skip re-install on subsequent loads.
+It also pre-grants `permission.skill: "allow"` for both skills and writes a `<package>.manifest.json` (version + per-file sha256 hashes) into the target config base. The manifest makes subsequent installs idempotent: an up-to-date scope is a zero-write no-op; version drift triggers an update; consumer-modified files are skipped unless `--force` is passed.
 
-### Plugin auto-install
+### Plugin load-time ensure
 
-When OpenCode loads the package via `opencode.json` plugins array, `plugin.ts` runs the same (local) install logic with a version-marker check — so the package auto-installs skills on first use if not already installed.
+When OpenCode loads the package via the `opencode.json` plugins array, `plugin.ts` performs read-only registration-scope detection (`src/registration.ts`): it checks where the package is registered — global config, the repo's `.opencode/opencode.json`, or a repo-root `opencode.json` — using semantic, `@latest`-aware name matching. Detection performs zero writes. Each detected scope is then ensured via the same manifest-gated installer used by the CLI, with `addPluginConfig`/`migrateRootConfig`/`force` disabled: the hook never edits `plugin` arrays, never migrates or deletes root configs, and never force-overwrites consumer-modified files. If the package is registered nowhere and no install exists in any scope, a one-shot advisory (log + toast) suggests running the CLI install.
 
 ### CLI commands
 
