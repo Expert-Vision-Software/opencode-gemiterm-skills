@@ -71,7 +71,7 @@ export class InstallManifest {
     if (this.contents === null) {
       return null;
     }
-    const manifestPath = InstallManifest.toManifestPath(relativePath);
+    const manifestPath = toManifestPath(relativePath);
     return this.contents.files.find(entry => entry.path === manifestPath)?.hash ?? null;
   }
 
@@ -93,10 +93,6 @@ export class InstallManifest {
       return sameVersion ? "keep" : "write";
     }
     return force ? "write" : "skip";
-  }
-
-  private static toManifestPath(relativePath: string): string {
-    return relativePath.replaceAll("\\", "/");
   }
 
   private static normalize(value: unknown): ManifestContents | null {
@@ -126,4 +122,8 @@ export class InstallManifest {
     const candidate = value as Record<string, unknown>;
     return typeof candidate["path"] === "string" && typeof candidate["hash"] === "string";
   }
+}
+
+export function toManifestPath(relativePath: string): string {
+  return relativePath.replaceAll("\\", "/");
 }

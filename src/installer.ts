@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PluginNameNormalizer } from "./plugin-name.ts";
-import { InstallManifest, installManifestPath, type ManifestFileEntry } from "./manifest.ts";
+import { InstallManifest, installManifestPath, toManifestPath, type ManifestFileEntry } from "./manifest.ts";
 
 export type Scope = "local" | "global";
 
@@ -44,7 +44,7 @@ export interface StatusResult {
 }
 
 const SKILL_NAMES = ["gemiterm", "debate-with-gemini"] as const;
-const PACKAGE_NAME = "opencode-gemiterm-skills";
+export const PACKAGE_NAME = "opencode-gemiterm-skills";
 
 export function normalizePluginName(entry: string): string {
   return PluginNameNormalizer.normalize(entry);
@@ -129,10 +129,6 @@ async function removeStaleVersionMarkers(skillsBase: string): Promise<void> {
   }
 }
 
-function toManifestPath(relativePath: string): string {
-  return relativePath.replaceAll("\\", "/");
-}
-
 function requiredRecordedHash(manifest: InstallManifest, relativePath: string): string {
   const recorded = manifest.recordedHash(relativePath);
   if (recorded === null) {
@@ -176,13 +172,27 @@ async function writeJsonConfig(path: string, config: Record<string, unknown>): P
   await writeFile(path, JSON.stringify(config, null, 2));
 }
 
-async function ensureSkillPermissions(configPath: string, skillNames: readonly string[]): Promise<boolean> {
+async function readConfigGuarded(configPath: string): Promise<Record<string, unknown> | null> {
   const config = await readJsonConfig(configPath);
   if (config === null) {
     console.warn(
       `[${PACKAGE_NAME}] Refusing to write ${configPath}: the file is not valid JSON. ` +
         `Fix or remove the file, then re-run install. The file was left unchanged.`
     );
+  }
+  return config;
+}
+
+export async function isConfigUnparseable(configPath: string): Promise<boolean> {
+  if (!(await exists(configPath))) {
+    return false;
+  }
+  return (await readJsonConfig(configPath)) === null;
+}
+
+async function ensureSkillPermissions(configPath: string, skillNames: readonly string[]): Promise<boolean> {
+  const config = await readConfigGuarded(configPath);
+  if (config === null) {
     return false;
   }
 
@@ -203,12 +213,8 @@ async function ensureSkillPermissions(configPath: string, skillNames: readonly s
 }
 
 async function addPluginToConfig(configPath: string): Promise<boolean> {
-  const config = await readJsonConfig(configPath);
+  const config = await readConfigGuarded(configPath);
   if (config === null) {
-    console.warn(
-      `[${PACKAGE_NAME}] Refusing to write ${configPath}: the file is not valid JSON. ` +
-        `Fix or remove the file, then re-run install. The file was left unchanged.`
-    );
     return false;
   }
 
@@ -229,12 +235,8 @@ async function addPluginToConfig(configPath: string): Promise<boolean> {
 }
 
 async function removePluginFromConfig(configPath: string): Promise<boolean> {
-  const config = await readJsonConfig(configPath);
+  const config = await readConfigGuarded(configPath);
   if (config === null) {
-    console.warn(
-      `[${PACKAGE_NAME}] Refusing to write ${configPath}: the file is not valid JSON. ` +
-        `Fix or remove the file manually. The file was left unchanged.`
-    );
     return false;
   }
 
@@ -280,12 +282,8 @@ export async function migrateRootConfig(projectDir: string): Promise<boolean> {
   const { needed, rootConfigPath, dotOpencodeConfigPath } = await checkMigrationNeeded(projectDir);
   if (!needed) return false;
 
-  const rootConfig = await readJsonConfig(rootConfigPath);
+  const rootConfig = await readConfigGuarded(rootConfigPath);
   if (rootConfig === null) {
-    console.warn(
-      `Refusing to migrate ${rootConfigPath}: the file is not valid JSON. ` +
-        `Fix or remove the file, then re-run install. The file was left unchanged.`
-    );
     return false;
   }
 
@@ -362,12 +360,18 @@ export async function install(
     writtenRelativePaths.push(plannedFile.relativeDest);
   }
 
-  const action: InstallAction =
-    writtenRelativePaths.length === 0 ? "noop" : manifest.hasContents() ? "upgraded" : "installed";
+  const wroteFiles = writtenRelativePaths.length > 0;
+  const needsManifestRewrite = wroteFiles || !sameVersion;
+  const action: InstallAction = !needsManifestRewrite
+    ? "noop"
+    : manifest.hasContents()
+      ? "upgraded"
+      : "installed";
 
-  if (action !== "noop") {
+  if (needsManifestRewrite) {
     await removeStaleVersionMarkers(join(configBase, "skills"));
-    await InstallManifest.write(manifestPath, packageVersion, recordedFiles);
+    const filesToRecord = wroteFiles ? recordedFiles : manifest.files;
+    await InstallManifest.write(manifestPath, packageVersion, filesToRecord);
     await ensureSkillPermissions(configPath, SKILL_NAMES);
   }
 

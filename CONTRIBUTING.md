@@ -50,9 +50,14 @@ opencode-gemiterm-skills/
 │   │   ├── install.ts
 │   │   ├── uninstall.ts
 │   │   └── status.ts
-│   └── installer.ts               # core install logic
+│   ├── advisory.ts                # one-shot load advisory (log + toast), zero writes
+│   ├── installer.ts               # manifest-gated install/uninstall/status core
+│   ├── manifest.ts                # InstallManifest: version + per-file sha256 hashes
+│   ├── plugin-name.ts             # PluginNameNormalizer: canonical @latest names
+│   └── registration.ts            # read-only registration-scope detection
 ├── tests/
-│   └── skills.test.ts             # smoke test
+│   ├── skills.test.ts             # skill/frontmatter smoke tests
+│   └── regression.test.ts         # scope/manifest/detection regression contract
 ├── .gitignore
 ├── AGENTS.md
 ├── CHANGELOG.md
@@ -61,7 +66,7 @@ opencode-gemiterm-skills/
 ├── README.md
 ├── index.ts                       # module entry: re-exports plugin.ts
 ├── package.json
-├── plugin.ts                      # plugin entry with config hook (auto-install on load)
+├── plugin.ts                      # plugin entry: detect scope → ensure assets → advisory
 └── tsconfig.json
 ```
 
@@ -79,6 +84,8 @@ It also pre-grants `permission.skill: "allow"` for both skills and writes a `<pa
 ### Plugin load-time ensure
 
 When OpenCode loads the package via the `opencode.json` plugins array, `plugin.ts` performs read-only registration-scope detection (`src/registration.ts`): it checks where the package is registered — global config, the repo's `.opencode/opencode.json`, or a repo-root `opencode.json` — using semantic, `@latest`-aware name matching. Detection performs zero writes. Each detected scope is then ensured via the same manifest-gated installer used by the CLI, with `addPluginConfig`/`migrateRootConfig`/`force` disabled: the hook never edits `plugin` arrays, never migrates or deletes root configs, and never force-overwrites consumer-modified files. If the package is registered nowhere and no install exists in any scope, a one-shot advisory (log + toast) suggests running the CLI install.
+
+A throwaway repro harness asserting the plugin-level contract (no repo writes for a globally-registered plugin, idempotent second start, one-shot advisory) lives at `Temp\opencode\gemiterm-repro\repro-global-mutation.ts` — run it with `bun <path>`; it is dev-config evidence, never commit it.
 
 ### CLI commands
 

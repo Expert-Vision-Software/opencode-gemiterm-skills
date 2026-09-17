@@ -1,9 +1,10 @@
 import { join } from "node:path";
 import {
+  PACKAGE_NAME,
   getGlobalConfigPath,
   getLocalConfigPath,
   getPackageDir,
-  getPackageName,
+  isConfigUnparseable,
   isPluginInConfig,
   isScopeInstalled,
   type Scope,
@@ -11,14 +12,20 @@ import {
 
 export type RegistrationContext = "none" | "global" | "repo-local" | "both";
 
+const SCOPES_BY_CONTEXT: Record<RegistrationContext, Scope[]> = {
+  none: [],
+  global: ["global"],
+  "repo-local": ["local"],
+  both: ["global", "local"],
+};
+
 export class RegistrationDetector {
   static async detect(directory: string): Promise<RegistrationContext> {
-    const packageName = getPackageName();
-    const globalRegistered = await isPluginInConfig(join(getGlobalConfigPath(), "opencode.json"), packageName);
+    const globalRegistered = await RegistrationDetector.checkGlobalRegistration();
 
     const isSelfCheckout = join(directory) === join(getPackageDir());
     const repoLocalRegistered = isSelfCheckout ||
-      await RegistrationDetector.isRegisteredInRepo(directory, packageName);
+      await RegistrationDetector.isRegisteredInRepo(directory);
 
     if (globalRegistered && repoLocalRegistered) {
       return "both";
@@ -33,16 +40,7 @@ export class RegistrationDetector {
   }
 
   static scopesToEnsure(context: RegistrationContext): Scope[] {
-    if (context === "both") {
-      return ["global", "local"];
-    }
-    if (context === "global") {
-      return ["global"];
-    }
-    if (context === "repo-local") {
-      return ["local"];
-    }
-    return [];
+    return SCOPES_BY_CONTEXT[context];
   }
 
   static async hasAnyInstallation(directory: string): Promise<boolean> {
@@ -52,12 +50,34 @@ export class RegistrationDetector {
     return isScopeInstalled(getLocalConfigPath(directory));
   }
 
-  private static async isRegisteredInRepo(directory: string, packageName: string): Promise<boolean> {
+  private static async checkGlobalRegistration(): Promise<boolean> {
+    const configPath = join(getGlobalConfigPath(), "opencode.json");
+    if (await isConfigUnparseable(configPath)) {
+      RegistrationDetector.warnUnparseable(configPath);
+      return false;
+    }
+    return isPluginInConfig(configPath);
+  }
+
+  private static async isRegisteredInRepo(directory: string): Promise<boolean> {
     const nestedConfigPath = join(getLocalConfigPath(directory), "opencode.json");
-    if (await isPluginInConfig(nestedConfigPath, packageName)) {
+    if (await isConfigUnparseable(nestedConfigPath)) {
+      RegistrationDetector.warnUnparseable(nestedConfigPath);
+    } else if (await isPluginInConfig(nestedConfigPath)) {
       return true;
     }
     const rootConfigPath = join(directory, "opencode.json");
-    return isPluginInConfig(rootConfigPath, packageName);
+    if (await isConfigUnparseable(rootConfigPath)) {
+      RegistrationDetector.warnUnparseable(rootConfigPath);
+      return false;
+    }
+    return isPluginInConfig(rootConfigPath);
+  }
+
+  private static warnUnparseable(configPath: string): void {
+    console.warn(
+      `[${PACKAGE_NAME}] ${configPath} is not valid JSON and was ignored during registration detection. ` +
+        `Fix or remove the file; until then this scope is treated as not registered.`
+    );
   }
 }

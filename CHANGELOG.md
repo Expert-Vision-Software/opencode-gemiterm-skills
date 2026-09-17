@@ -20,7 +20,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - One-shot advisory (log + toast) when the package is registered in no scope and no install exists; fires exactly once per session and performs zero writes.
 - Regression-contract test suite (`tests/regression.test.ts`) covering the full scope/manifest/`--force`/detection matrix with a sandboxed global config.
-- Repro harness asserting the plugin-level contract (`repro-global-mutation.ts` pattern).
+
+### Fixed
+
+- Version drift with byte-identical files no longer stalls: the scope manifest is rewritten on drift even when no file content changed, so drift is reconciled in one load instead of recurring forever.
+- `permission.skill` grants are now ensured on every manifest rewrite, not only when skill files are written.
+- Registration detection warns (instead of silently reporting "not installed") when an opencode.json it inspects is not valid JSON.
+- Advisory/toast helpers moved out of `plugin.ts` into `src/advisory.ts` per the repo's src-only rule.
 
 ---
 

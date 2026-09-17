@@ -9,10 +9,12 @@ import {
   isPluginInConfig,
   getGlobalConfigPath,
   getLocalConfigPath,
+  getPackageDir,
   type InstallOptions,
 } from "../src/installer.ts";
 import { RegistrationDetector } from "../src/registration.ts";
 import { installManifestPath } from "../src/manifest.ts";
+import plugin from "../plugin.ts";
 
 const PKG = "opencode-gemiterm-skills";
 const LOAD_OPTIONS: InstallOptions = { addPluginConfig: false, migrateRootConfig: false, force: false };
@@ -214,6 +216,46 @@ describe("regression contract", () => {
     expect(result.action).toBe("installed");
   });
 
+  test("version drift with identical file hashes still rewrites the manifest", async () => {
+    const repo = await makeRepo();
+    await registerGlobal();
+    await install("global", repo, LOAD_OPTIONS);
+
+    const manifestPath = installManifestPath(globalBase(), PKG);
+    const manifest = JSON.parse(await readText(manifestPath));
+    manifest.version = "0.0.1";
+    await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+
+    const skillPath = join(globalBase(), "skills", "gemiterm", "SKILL.md");
+    const skillBefore = await readText(skillPath);
+
+    const drifted = await install("global", repo, LOAD_OPTIONS);
+
+    expect(drifted.action).toBe("upgraded");
+    expect(JSON.parse(await readText(manifestPath)).version).not.toBe("0.0.1");
+    expect(await readText(skillPath)).toBe(skillBefore);
+  });
+
+  test("permissions are ensured when a drift no-op rewrites the manifest", async () => {
+    const repo = await makeRepo();
+    await registerGlobal();
+    await install("global", repo, LOAD_OPTIONS);
+
+    const configPath = join(globalBase(), "opencode.json");
+    await writeFile(configPath, JSON.stringify({ plugin: [`${PKG}@latest`] }));
+
+    const manifestPath = installManifestPath(globalBase(), PKG);
+    const manifest = JSON.parse(await readText(manifestPath));
+    manifest.version = "0.0.1";
+    await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+
+    await install("global", repo, LOAD_OPTIONS);
+
+    const perms = JSON.parse(await readText(configPath)).permission;
+    expect(perms.skill.gemiterm).toBe("allow");
+    expect(perms.skill["debate-with-gemini"]).toBe("allow");
+  });
+
   test("up-to-date installed scope: zero writes (manifest no-op)", async () => {
     const repo = await makeRepo();
     await registerRepoLocal(repo);
@@ -346,6 +388,29 @@ describe("regression contract", () => {
 
     await install("global", repo, LOAD_OPTIONS);
     expect(await RegistrationDetector.hasAnyInstallation(repo)).toBe(true);
+  });
+
+  test("self-checkout is detected as repo-local without any registration", async () => {
+    expect(await RegistrationDetector.detect(getPackageDir())).toBe("repo-local");
+  });
+
+  test("plugin hook: advisory fires exactly once per session with zero writes", async () => {
+    const repo = await makeRepo();
+    const logs: string[] = [];
+    const fakeClient = {
+      app: { log: async (b: unknown) => { logs.push((b as { body: { message: string } }).body.message); } },
+      tui: { showToast: async () => {} },
+    };
+
+    const service = await (plugin as never as (input: unknown) => Promise<{ config: (c: unknown) => Promise<void> }>)({
+      directory: repo,
+      client: fakeClient,
+    });
+    await service.config({});
+    await service.config({});
+
+    expect(logs.filter((m) => m.includes("not installed in any scope")).length).toBe(1);
+    expect(await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd: globalBase(), dot: true }))).toEqual([]);
   });
 
   test("status reports manifest version per scope with legacy fallback", async () => {
