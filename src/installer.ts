@@ -10,6 +10,7 @@ export type Scope = "local" | "global";
 export interface InstallOptions {
   addPluginConfig: boolean;
   migrateRootConfig: boolean;
+  ensurePermissions: boolean;
   force: boolean;
 }
 
@@ -309,12 +310,12 @@ export async function migrateRootConfig(projectDir: string): Promise<boolean> {
 export async function install(
   scope: Scope,
   projectDir: string = process.cwd(),
-  options: InstallOptions = { addPluginConfig: true, migrateRootConfig: true, force: false },
+  options: InstallOptions = { addPluginConfig: true, migrateRootConfig: true, ensurePermissions: false, force: false },
 ): Promise<InstallResult> {
   const packageVersion = await getPackageVersion();
   const pkgDir = getPackageDir();
 
-  const { addPluginConfig, migrateRootConfig: allowRootMigration, force } = options;
+  const { addPluginConfig, migrateRootConfig: allowRootMigration, ensurePermissions, force } = options;
 
   const configBase = scope === "global" ? getGlobalConfigPath() : getLocalConfigPath(projectDir);
   const configPath = join(configBase, "opencode.json");
@@ -372,7 +373,9 @@ export async function install(
     await removeStaleVersionMarkers(join(configBase, "skills"));
     const filesToRecord = wroteFiles ? recordedFiles : manifest.files;
     await InstallManifest.write(manifestPath, packageVersion, filesToRecord);
-    await ensureSkillPermissions(configPath, SKILL_NAMES);
+    if (ensurePermissions) {
+      await ensureSkillPermissions(configPath, SKILL_NAMES);
+    }
   }
 
   let pluginAdded = false;

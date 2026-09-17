@@ -17,8 +17,8 @@ import { installManifestPath } from "../src/manifest.ts";
 import plugin from "../plugin.ts";
 
 const PKG = "opencode-gemiterm-skills";
-const LOAD_OPTIONS: InstallOptions = { addPluginConfig: false, migrateRootConfig: false, force: false };
-const CLI_OPTIONS: InstallOptions = { addPluginConfig: true, migrateRootConfig: true, force: false };
+const LOAD_OPTIONS: InstallOptions = { addPluginConfig: false, migrateRootConfig: false, ensurePermissions: false, force: false };
+const CLI_OPTIONS: InstallOptions = { addPluginConfig: true, migrateRootConfig: true, ensurePermissions: true, force: false };
 
 let sandboxRoot: string;
 let realXdg: string | undefined;
@@ -236,7 +236,7 @@ describe("regression contract", () => {
     expect(await readText(skillPath)).toBe(skillBefore);
   });
 
-  test("permissions are ensured when a drift no-op rewrites the manifest", async () => {
+  test("load-path install never writes permissions; CLI install does", async () => {
     const repo = await makeRepo();
     await registerGlobal();
     await install("global", repo, LOAD_OPTIONS);
@@ -249,7 +249,15 @@ describe("regression contract", () => {
     manifest.version = "0.0.1";
     await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
 
-    await install("global", repo, LOAD_OPTIONS);
+    const loadRun = await install("global", repo, LOAD_OPTIONS);
+    expect(loadRun.action).toBe("upgraded");
+    expect(JSON.parse(await readText(configPath)).permission).toBeUndefined();
+
+    manifest.version = "0.0.1";
+    await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+
+    await install("global", repo, CLI_OPTIONS);
+    expect(JSON.parse(await readText(manifestPath)).version).not.toBe("0.0.1");
 
     const perms = JSON.parse(await readText(configPath)).permission;
     expect(perms.skill.gemiterm).toBe("allow");
