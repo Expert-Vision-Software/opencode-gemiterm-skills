@@ -316,9 +316,7 @@ describe("regression contract", () => {
     await install("local", repo, LOAD_OPTIONS);
     expect(await fileExists(installManifestPath(getLocalConfigPath(repo), PKG))).toBe(true);
     expect(
-      await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd: globalBase(), dot: true })).then((files) =>
-        files.filter((f) => f.endsWith(".json")),
-      ),
+      await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd: globalBase(), dot: true }))      .then((files) => files.filter((f) => f.endsWith(".json")).sort()),
     ).toEqual(["opencode-gemiterm-skills.manifest.json", "opencode.json"]);
   });
 
