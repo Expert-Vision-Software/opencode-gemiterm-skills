@@ -5,14 +5,5 @@
         "paths": [
             "../skills"
         ]
-    },
-    "permission": {
-        "bash": {
-            "gemiterm *": "allow"
-        },
-        "skill": {
-            "gemiterm": "allow",
-            "debate-with-gemini": "allow"
-        }
     }
 }
