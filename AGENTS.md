@@ -29,7 +29,7 @@
 <self_config>
 <location>.opencode/opencode.json</location>
 <purpose>Register skills/ as a skill path and pre-allow both skills</purpose>
-<pointer_in_package_json>opencode.plugin → .opencode/opencode.json</pointer_in_package_json>
+<registration>Config hook via plugin.ts — NOT a package.json opencode key; tests/skills.test.ts asserts pkg.opencode is undefined</registration>
 </self_config>
 
 <consumer_install>
