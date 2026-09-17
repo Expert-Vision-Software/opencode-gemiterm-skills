@@ -4,6 +4,32 @@ All notable changes to `opencode-gemiterm-skills` will be documented in this fil
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-09-17
+
+### Changed
+
+- **Scope-aware, manifest-gated load-time installation** (aligned with the `opencode-auto-qcgates` v1.5.0 model):
+  - `plugin.ts` now performs read-only registration-scope detection (`src/registration.ts`): global config / repo `.opencode/opencode.json` / repo-root `opencode.json`, with semantic `@latest`-aware name matching. The old `directory`-based global-vs-local guess (which leaked local installs into every consumer repo) is gone.
+  - Installs are gated by `<configBase>/opencode-gemiterm-skills.manifest.json` (version + per-file sha256 hashes, `src/manifest.ts`): up-to-date scope = zero-write no-op; version drift = update that scope only; consumer-modified files = skip + warn at load (`--force` stays CLI-only).
+  - `.version` markers are obsolete; they are removed on the first manifest-era install and `status` falls back to them only for pre-manifest installs.
+- Hardening carried into the CLI: unparseable opencode.json is never rewritten from `{}` (refuse + warn, preserved byte-for-byte); plugin entries are written canonically as `name@latest` with semantic dedup; root-config migration and `plugin`-array edits are consented CLI actions only — the load hook never performs them.
+- New `install --force` CLI flag to overwrite consumer-modified installed files.
+- `status` now reports both scopes independently.
+
+### Added
+
+- One-shot advisory (log + toast) when the package is registered in no scope and no install exists; fires exactly once per session and performs zero writes.
+- Regression-contract test suite (`tests/regression.test.ts`) covering the full scope/manifest/`--force`/detection matrix with a sandboxed global config.
+
+### Fixed
+
+- Version drift with byte-identical files no longer stalls: the scope manifest is rewritten on drift even when no file content changed, so drift is reconciled in one load instead of recurring forever.
+- `permission.skill` grants are now ensured on every manifest rewrite, not only when skill files are written.
+- Registration detection warns (instead of silently reporting "not installed") when an opencode.json it inspects is not valid JSON.
+- Advisory/toast helpers moved out of `plugin.ts` into `src/advisory.ts` per the repo's src-only rule.
+
+---
+
 ## [0.7.0] - 2026-06-13
 
 ### Changed

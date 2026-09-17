@@ -22,6 +22,8 @@ Commands:
 
 Options:
   -s, --scope <scope>    Installation scope: "local" (default) or "global"
+  -f, --force            Overwrite consumer-modified installed files (install only)
+      --migrate-root-config   Migrate a repo-root opencode.json into .opencode/ (install only, off by default)
   -h, --help             Show this help message
   -v, --version          Show version
 
@@ -37,6 +39,8 @@ async function main(): Promise<void> {
   const { positionals, values } = parseArgs({
     options: {
       scope: { type: "string", short: "s" },
+      force: { type: "boolean", short: "f", default: false },
+      "migrate-root-config": { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
       version: { type: "boolean", short: "v", default: false },
     },
@@ -65,7 +69,7 @@ async function main(): Promise<void> {
   try {
     switch (command) {
       case "install":
-        await installCommand({ scope });
+        await installCommand({ scope, force: values.force, migrateRootConfig: values["migrate-root-config"] });
         break;
       case "uninstall":
         await uninstallCommand({ scope });

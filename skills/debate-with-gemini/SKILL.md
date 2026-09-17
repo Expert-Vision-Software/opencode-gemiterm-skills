@@ -7,6 +7,7 @@ metadata:
   tool: gemiterm
   workflow: debate
   runtime: bun
+  requires: gemiterm
 ---
 
 # Debate with Gemini

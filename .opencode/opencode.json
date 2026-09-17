@@ -7,12 +7,12 @@
         ]
     },
     "permission": {
-        "bash": {
-            "gemiterm *": "allow"
-        },
         "skill": {
             "gemiterm": "allow",
             "debate-with-gemini": "allow"
+        },
+        "external_directory": {
+            "~/.cache/opencode/packages/opencode-architect*/node_modules/opencode-architect/": "allow"
         }
     }
 }
