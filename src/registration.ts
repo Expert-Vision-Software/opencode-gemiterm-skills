@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import {
+  CONFIG_FILE_NAMES,
   PACKAGE_NAME,
   getGlobalConfigPath,
   getLocalConfigPath,
@@ -55,15 +56,14 @@ export class RegistrationDetector {
   private static async isRegisteredInRepo(directory: string): Promise<boolean> {
     const nestedConfigBase = getLocalConfigPath(directory);
     await RegistrationDetector.warnUnparseableCandidates(nestedConfigBase);
-    if (await isPluginInConfigBase(nestedConfigBase, PACKAGE_NAME)) {
-      return true;
-    }
     await RegistrationDetector.warnUnparseableCandidates(directory);
-    return isPluginInConfigBase(directory, PACKAGE_NAME);
+    const nestedRegistered = await isPluginInConfigBase(nestedConfigBase, PACKAGE_NAME);
+    const rootRegistered = await isPluginInConfigBase(directory, PACKAGE_NAME);
+    return nestedRegistered || rootRegistered;
   }
 
   private static async warnUnparseableCandidates(configBase: string): Promise<void> {
-    for (const fileName of ["opencode.json", "opencode.jsonc"]) {
+    for (const fileName of CONFIG_FILE_NAMES) {
       const configPath = join(configBase, fileName);
       if (await isConfigUnparseable(configPath)) {
         RegistrationDetector.warnUnparseable(configPath);

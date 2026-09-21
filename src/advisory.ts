@@ -10,13 +10,14 @@ export interface AdvisoryContext {
   client: PluginInput["client"] | undefined;
   directory: string;
   emitted: boolean;
+  failureEmitted: boolean;
 }
 
 export function createAdvisoryContext(
   client: PluginInput["client"] | undefined,
   directory: string,
 ): AdvisoryContext {
-  return { client, directory, emitted: false };
+  return { client, directory, emitted: false, failureEmitted: false };
 }
 
 async function logWarn(context: AdvisoryContext, message: string): Promise<void> {
@@ -64,17 +65,26 @@ export async function maybeEmitInstallAdvisory(context: AdvisoryContext): Promis
 }
 
 export async function emitFailureAdvisory(context: AdvisoryContext, error: unknown): Promise<void> {
+  if (context.failureEmitted) {
+    return;
+  }
+  context.failureEmitted = true;
   let message: string;
   try {
     message = await buildFailureMessage(error);
   } catch {
-    message =
-      `${PACKAGE_NAME} startup self-ensure failed and the package metadata is unreadable. ` +
-      `Remedies: run "bunx ${PACKAGE_NAME} install --scope global", or clear the plugin cache ` +
-      `under ~/.cache/opencode/packages/ and restart.`;
+    message = failureFallbackMessage();
   }
   await logWarn(context, message);
   await showToastAdvisory(context, message);
+}
+
+export function failureFallbackMessage(): string {
+  return (
+    `${PACKAGE_NAME} startup self-ensure failed and the package metadata is unreadable. ` +
+    `Remedies: run "bunx ${PACKAGE_NAME} install --scope global", or clear the plugin cache ` +
+    `under ~/.cache/opencode/packages/${PACKAGE_NAME}@<version> and restart.`
+  );
 }
 
 async function buildFailureMessage(error: unknown): Promise<string> {

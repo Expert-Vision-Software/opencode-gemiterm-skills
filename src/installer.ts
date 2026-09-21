@@ -46,6 +46,7 @@ export interface StatusResult {
 
 const SKILL_NAMES = ["gemiterm", "debate-with-gemini"] as const;
 export const PACKAGE_NAME = "opencode-gemiterm-skills";
+export const CONFIG_FILE_NAMES = ["opencode.json", "opencode.jsonc"] as const;
 
 export function normalizePluginName(entry: string): string {
   return PluginNameNormalizer.normalize(entry);
@@ -89,12 +90,27 @@ interface PlannedAssetFile {
   relativeDest: string;
 }
 
-async function collectSkillFiles(packageDir: string): Promise<PlannedAssetFile[]> {
+export function skillSourceMissingError(
+  skillSourcePath: string,
+  packageName: string,
+  packageVersion: string,
+): string {
+  const cacheDir = `~/.cache/opencode/packages/${packageName}@${packageVersion}`;
+  return (
+    `Package skills not found at ${skillSourcePath}. ` +
+    `Installs must run from the published package (e.g. "bunx ${packageName}@latest install" ` +
+    `or a global install), never from a partial cache artifact. ` +
+    `If OpenCode loaded this copy from its plugin cache, remove the cached copy so the next start ` +
+    `re-installs it, then restart: "rm -rf ${cacheDir}"`
+  );
+}
+
+async function collectSkillFiles(packageDir: string, packageVersion: string): Promise<PlannedAssetFile[]> {
   const planned: PlannedAssetFile[] = [];
   for (const name of SKILL_NAMES) {
     const skillSource = join(packageDir, "skills", name);
     if (!(await exists(skillSource))) {
-      continue;
+      throw new Error(skillSourceMissingError(skillSource, PACKAGE_NAME, packageVersion));
     }
     planned.push(...(await collectNestedFiles(skillSource, join("skills", name))));
   }
@@ -188,10 +204,7 @@ function stripJsoncSyntax(source: string): string {
       continue;
     }
     if (char === ",") {
-      let next = index + 1;
-      while (next < source.length && /\s/.test(source[next])) {
-        next++;
-      }
+      const next = skipJsoncTrivia(source, index + 1);
       if (source[next] === "}" || source[next] === "]") {
         continue;
       }
@@ -199,6 +212,33 @@ function stripJsoncSyntax(source: string): string {
     stripped += char;
   }
   return stripped;
+}
+
+function skipJsoncTrivia(source: string, start: number): number {
+  let index = start;
+  while (index < source.length) {
+    const char = source[index];
+    if (/\s/.test(char)) {
+      index++;
+      continue;
+    }
+    if (char === "/" && source[index + 1] === "/") {
+      while (index < source.length && source[index] !== "\n") {
+        index++;
+      }
+      continue;
+    }
+    if (char === "/" && source[index + 1] === "*") {
+      index += 2;
+      while (index < source.length && !(source[index] === "*" && source[index + 1] === "/")) {
+        index++;
+      }
+      index += 2;
+      continue;
+    }
+    break;
+  }
+  return index;
 }
 
 function parseConfigContent(content: string, path: string): Record<string, unknown> | null {
@@ -323,10 +363,12 @@ export async function isPluginInConfig(configPath: string, packageName: string =
 }
 
 export async function isPluginInConfigBase(configBase: string, packageName: string): Promise<boolean> {
-  if (await isPluginInConfig(join(configBase, "opencode.json"), packageName)) {
-    return true;
+  for (const fileName of CONFIG_FILE_NAMES) {
+    if (await isPluginInConfig(join(configBase, fileName), packageName)) {
+      return true;
+    }
   }
-  return isPluginInConfig(join(configBase, "opencode.jsonc"), packageName);
+  return false;
 }
 
 export async function checkMigrationNeeded(projectDir: string): Promise<{
@@ -373,9 +415,9 @@ export async function install(
   scope: Scope,
   projectDir: string = process.cwd(),
   options: InstallOptions = { addPluginConfig: true, migrateRootConfig: true, ensurePermissions: false, force: false },
+  packageDir: string = getPackageDir(),
 ): Promise<InstallResult> {
   const packageVersion = await getPackageVersion();
-  const pkgDir = getPackageDir();
 
   const { addPluginConfig, migrateRootConfig: allowRootMigration, ensurePermissions, force } = options;
 
@@ -390,7 +432,7 @@ export async function install(
 
   const manifest = await InstallManifest.read(manifestPath);
   const sameVersion = manifest.matchesVersion(packageVersion);
-  const plannedFiles = await collectSkillFiles(pkgDir);
+  const plannedFiles = await collectSkillFiles(packageDir, packageVersion);
 
   const writtenRelativePaths: string[] = [];
   const skipped: string[] = [];

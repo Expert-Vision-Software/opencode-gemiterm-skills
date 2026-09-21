@@ -27,7 +27,7 @@
 </bundled_skills>
 
 <conventions>
-- **Peer parity: hooks never throw, and registration detection is config-based and format-tolerant.** The `config` hook (`plugin.ts`) wraps its body in try/catch: any failure degrades to a warn log + toast naming the exact remediation (`bunx opencode-gemiterm-skills install --scope global`, plus the `~/.cache/opencode/packages/opencode-gemiterm-skills@<version>` dir to clear for cache rot). It never rethrows, never auto-deletes the cache (that races OpenCode's in-flight installs), and hard errors stay CLI-only. Registration detection (`src/registration.ts`, `isPluginInConfigBase`) honors both `opencode.json` and `opencode.jsonc` in the global config dir, `.opencode/`, and the repo root — `.jsonc` is parsed leniently, `.json` stays strict — and detection never keys off the launch directory.
+- **Peer parity: hooks never throw, and registration detection is config-based and format-tolerant.** The `config` hook (`plugin.ts`) wraps its body in try/catch: any failure degrades to a warn log + toast naming the exact remediation (`bunx opencode-gemiterm-skills install --scope global`, plus the `~/.cache/opencode/packages/opencode-gemiterm-skills@<version>` dir to clear for cache rot). It never rethrows, never auto-deletes the cache (that races OpenCode's in-flight installs), and hard errors stay CLI-only. Registration detection (`src/installer.ts`, `isPluginInConfigBase`) honors both `opencode.json` and `opencode.jsonc` in the global config dir, `.opencode/`, and the repo root — `.jsonc` is parsed leniently, `.json` stays strict — and detection never keys off the launch directory.
 </conventions>
 
 <self_config>

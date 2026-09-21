@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeAll, afterAll, beforeEach } from "bun:test";
+import { test, expect, describe, beforeAll, afterAll, beforeEach, spyOn } from "bun:test";
 import { mkdtemp, mkdir, rm, writeFile, readFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -16,6 +16,7 @@ import {
 } from "../src/installer.ts";
 import { RegistrationDetector } from "../src/registration.ts";
 import { installManifestPath } from "../src/manifest.ts";
+import { failureFallbackMessage } from "../src/advisory.ts";
 import plugin from "../plugin.ts";
 
 const PKG = "opencode-gemiterm-skills";
@@ -86,12 +87,16 @@ function makeCapturingClient(): CapturingClient {
   };
 }
 
-async function invokeConfigHook(directory: string, client: unknown = undefined): Promise<void> {
+async function createConfigHook(directory: string, client: unknown = undefined): Promise<(input: unknown) => Promise<void>> {
   const service = await (plugin as never as (input: unknown) => Promise<{ config: (c: unknown) => Promise<void> }>)({
     directory,
     client,
   });
-  await service.config({});
+  return service.config;
+}
+
+async function invokeConfigHook(directory: string, client: unknown = undefined): Promise<void> {
+  await (await createConfigHook(directory, client))({});
 }
 
 function lenientJsoncFixture(packageName: string): string {
@@ -251,6 +256,58 @@ describe("registration detection", () => {
     expect(await isConfigUnparseable(jsoncPath)).toBe(true);
     expect(await isPluginInConfigBase(repo, PKG)).toBe(false);
     expect(await readText(jsoncPath)).toBe(content);
+  });
+
+  test("jsonc comment between a trailing comma and its array closer is detected, not reported invalid", async () => {
+    const fixtures = [
+      `{\n  "plugin": [\n    "${PKG}", // trailing\n  ]\n}`,
+      `{\n  "plugin": [\n    "${PKG}", /* trailing */\n  ]\n}`,
+    ];
+
+    for (const content of fixtures) {
+      const repo = await makeRepo();
+      const jsoncPath = join(repo, "opencode.jsonc");
+      await writeFile(jsoncPath, content);
+
+      expect(await isConfigUnparseable(jsoncPath)).toBe(false);
+      expect(await isPluginInConfigBase(repo, PKG)).toBe(true);
+      expect(await RegistrationDetector.detect(repo)).toBe("repo-local");
+      expect(await readText(jsoncPath)).toBe(content);
+    }
+  });
+
+  test("jsonc comment between a trailing comma and its object closer is detected, not reported invalid", async () => {
+    const fixtures = [
+      `{\n  "plugin": ["${PKG}"], // trailing\n}`,
+      `{\n  "plugin": ["${PKG}"], /* trailing */\n}`,
+    ];
+
+    for (const content of fixtures) {
+      const repo = await makeRepo();
+      const jsoncPath = join(repo, "opencode.jsonc");
+      await writeFile(jsoncPath, content);
+
+      expect(await isConfigUnparseable(jsoncPath)).toBe(false);
+      expect(await isPluginInConfigBase(repo, PKG)).toBe(true);
+      expect(await RegistrationDetector.detect(repo)).toBe("repo-local");
+      expect(await readText(jsoncPath)).toBe(content);
+    }
+  });
+
+  test("warns about an unparseable repo-root config even when the nested config registers", async () => {
+    const repo = await makeRepo();
+    await registerRepoLocal(repo);
+    const rootPath = join(repo, "opencode.json");
+    await writeFile(rootPath, "{ not json");
+
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      expect(await RegistrationDetector.detect(repo)).toBe("repo-local");
+    } finally {
+      const warnings = warn.mock.calls.map((call) => call.join(" ")).join("\n");
+      warn.mockRestore();
+      expect(warnings).toContain(rootPath);
+    }
   });
 });
 
@@ -552,6 +609,65 @@ describe("regression contract", () => {
     expect(capturing.toasts[0]?.body.message).toContain(`bunx ${PKG} install --scope global`);
     expect(capturing.logs[0]?.body.message).toContain(`~/.cache/opencode/packages/${PKG}@`);
     expect(capturing.toasts[0]?.body.message).toContain(`~/.cache/opencode/packages/${PKG}@`);
+  });
+
+  test("failure advisory fallback names the package-qualified cache directory and the install command", () => {
+    const message = failureFallbackMessage();
+
+    expect(message).toContain(`bunx ${PKG} install --scope global`);
+    expect(message).toContain(`opencode-gemiterm-skills@`);
+    expect(message).toContain(`~/.cache/opencode/packages/${PKG}@`);
+  });
+
+  test("repeated failing config invocations in one session emit exactly one warn and one toast", async () => {
+    const repo = await makeRepo();
+    const localDir = getLocalConfigPath(repo);
+    await registerRepoLocal(repo);
+    await writeMarker(join(localDir, "skills"), "not a directory");
+    const capturing = makeCapturingClient();
+    const config = await createConfigHook(repo, capturing.client);
+
+    await config({});
+    await config({});
+
+    expect(capturing.logs.length).toBe(1);
+    expect(capturing.toasts.length).toBe(1);
+    expect(capturing.logs[0]?.body.level).toBe("warn");
+    expect(capturing.logs[0]?.body.message).toContain(`bunx ${PKG} install --scope global`);
+  });
+
+  test("a failure advisory does not suppress the install advisory in a later fresh session", async () => {
+    const failingRepo = await makeRepo();
+    await registerRepoLocal(failingRepo);
+    await writeMarker(join(getLocalConfigPath(failingRepo), "skills"), "not a directory");
+    const failingCapture = makeCapturingClient();
+    await invokeConfigHook(failingRepo, failingCapture.client);
+    expect(failingCapture.logs.length).toBe(1);
+    expect(failingCapture.toasts.length).toBe(1);
+
+    const freshRepo = await makeRepo();
+    const freshCapture = makeCapturingClient();
+    await invokeConfigHook(freshRepo, freshCapture.client);
+
+    const installAdvisories = freshCapture.logs.filter((entry) =>
+      entry.body.message.includes("not installed in any scope"),
+    );
+    expect(installAdvisories.length).toBe(1);
+  });
+
+  test("install throws loudly when a bundled skill source directory is missing", async () => {
+    const repo = await makeRepo();
+    const partialPackage = await mkdtemp(join(sandboxRoot, "partial-package-"));
+    await mkdir(join(partialPackage, "skills", "gemiterm"), { recursive: true });
+    await writeFile(join(partialPackage, "skills", "gemiterm", "SKILL.md"), "# stub");
+
+    const error = await install("local", repo, LOAD_OPTIONS, partialPackage).catch((caught) => caught);
+
+    expect(error).toBeInstanceOf(Error);
+    const message = (error as Error).message;
+    expect(message).toContain(join(partialPackage, "skills", "debate-with-gemini"));
+    expect(message).toContain(`~/.cache/opencode/packages/${PKG}@`);
+    expect(message).toContain(`bunx ${PKG}@latest install`);
   });
 
   test("plugin hook: advisory fires exactly once per session with zero writes", async () => {
