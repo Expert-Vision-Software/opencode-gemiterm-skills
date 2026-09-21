@@ -512,17 +512,6 @@ describe("regression contract", () => {
     expect(await readText(skillPath)).not.toBe("consumer edit");
   });
 
-  test(".version markers are reconciled on first manifest-era install", async () => {
-    const repo = await makeRepo();
-    await registerGlobal();
-    const markerPath = join(globalBase(), "skills", "gemiterm", ".version");
-    await writeMarker(markerPath, "0.6.0");
-
-    await install("global", repo, LOAD_OPTIONS);
-
-    expect(await fileExists(markerPath)).toBe(false);
-  });
-
   test("root-config migration is CLI-only", async () => {
     const repo = await makeRepo();
     await registerRepoLocal(repo);
@@ -689,7 +678,7 @@ describe("regression contract", () => {
     expect(await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd: globalBase(), dot: true }))).toEqual([]);
   });
 
-  test("status reports manifest version per scope with legacy fallback", async () => {
+  test("status reports the manifest version per scope", async () => {
     const repo = await makeRepo();
     const none = await status(repo);
     expect(none.local).toBeNull();
@@ -700,12 +689,19 @@ describe("regression contract", () => {
     expect(installed.global?.installed).toBe(true);
     expect(installed.global?.version).toBeTruthy();
     expect(installed.local).toBeNull();
+  });
 
-    const legacyRepo = await makeRepo();
-    const legacyBase = getLocalConfigPath(legacyRepo);
-    await writeMarker(join(legacyBase, "skills", "gemiterm", ".version"), "0.6.0");
-    const legacy = await status(legacyRepo);
-    expect(legacy.local?.installed).toBe(true);
-    expect(legacy.local?.version).toBe("0.6.0");
+  test("a skill directory without a manifest is not installed and self-heals on the next install", async () => {
+    const repo = await makeRepo();
+    const base = getLocalConfigPath(repo);
+    await writeMarker(join(base, "skills", "gemiterm", "SKILL.md"), "stale pre-manifest install");
+
+    expect((await status(repo)).local).toBeNull();
+
+    const healed = await install("local", repo, LOAD_OPTIONS);
+
+    expect(healed.action).toBe("installed");
+    expect(await fileExists(installManifestPath(base, PKG))).toBe(true);
+    expect((await status(repo)).local?.version).toBeTruthy();
   });
 });

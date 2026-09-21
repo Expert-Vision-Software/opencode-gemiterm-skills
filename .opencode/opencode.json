@@ -1,6 +1,6 @@
 {
     "$schema": "https://opencode.ai/config.json",
-    "plugin": ["opencode-architect"],
+    "plugin": ["opencode-architect@latest"],
     "skills": {
         "paths": [
             "../skills"

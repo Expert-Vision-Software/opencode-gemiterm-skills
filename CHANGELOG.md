@@ -4,7 +4,7 @@ All notable changes to `opencode-gemiterm-skills` will be documented in this fil
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-09-21
 
 ### Fixed
 
@@ -22,6 +22,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - `@opencode-ai/plugin` is now classified as a `devDependency`: every import in the shipped code is type-only and fully erased at runtime, so the published package declares **no runtime dependencies**.
 - devDependency ranges are pinned to the tested versions that are actually installed (`@types/bun@^1.3.14`, `@types/node@^26.6.2`) instead of floating `latest`, so installs no longer drift with whatever the registry publishes. The tracked `bun.lock` is the single source of truth, and the release workflow installs with `bun install --frozen-lockfile` so CI fails on a lockfile that does not match `package.json`.
 - `@opencode-ai/plugin` updated from `^1.16.2` to `^1.18.31`. The type-only surface this package imports (`Plugin`, `PluginInput`, `Config`, and the `client.app.log` / `client.tui.showToast` payloads) is unchanged across the bump, and `bun run check` and the test suite pass against the newer types.
+
+### Removed
+
+- The legacy `.version` marker mechanism is removed outright: `removeStaleVersionMarkers`, its install call site, and `readLegacySkillVersion` are deleted, so no marker is ever read or cleaned up. `<configBase>/opencode-gemiterm-skills.manifest.json` (version + per-file sha256 hashes) is now the sole installation record — a scope is installed iff its manifest exists with contents, and `status` no longer falls back to a skill directory or a marker. A pre-manifest install (1.0.0-or-earlier, no manifest) is correctly reported as not installed; the next `install` (or load-hook self-ensure) writes a fresh manifest in one pass with no `--force` required.
 
 ## [1.0.0] - 2026-09-17
 

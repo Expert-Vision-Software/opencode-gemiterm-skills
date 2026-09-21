@@ -13,7 +13,7 @@ export async function statusCommand(): Promise<void> {
     anyInstalled = true;
     console.log(`opencode-gemiterm-skills [${scope}]`);
     console.log(`  Installed: yes`);
-    if (scopeStatus.version) console.log(`  Version: ${scopeStatus.version}`);
+    console.log(`  Version: ${scopeStatus.version}`);
     console.log(`  Plugin in config: ${scopeStatus.pluginInConfig ? "yes" : "no"}`);
   }
 

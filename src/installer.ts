@@ -35,7 +35,7 @@ export interface UninstallResult {
 
 export interface ScopeStatus {
   installed: boolean;
-  version: string | null;
+  version: string;
   pluginInConfig: boolean;
 }
 
@@ -129,21 +129,6 @@ async function collectNestedFiles(directory: string, relativeBase: string): Prom
     }
   }
   return planned;
-}
-
-async function removeStaleVersionMarkers(skillsBase: string): Promise<void> {
-  if (!(await exists(skillsBase))) {
-    return;
-  }
-  for (const entry of await readdir(skillsBase, { withFileTypes: true })) {
-    if (!entry.isDirectory()) {
-      continue;
-    }
-    const markerPath = join(skillsBase, entry.name, ".version");
-    if (await exists(markerPath)) {
-      await rm(markerPath);
-    }
-  }
 }
 
 function requiredRecordedHash(manifest: InstallManifest, relativePath: string): string {
@@ -474,7 +459,6 @@ export async function install(
       : "installed";
 
   if (needsManifestRewrite) {
-    await removeStaleVersionMarkers(join(configBase, "skills"));
     const filesToRecord = wroteFiles ? recordedFiles : manifest.files;
     await InstallManifest.write(manifestPath, packageVersion, filesToRecord);
     if (ensurePermissions) {
@@ -542,19 +526,10 @@ export async function isScopeInstalled(configBase: string): Promise<boolean> {
 
 async function readScopeStatus(configBase: string): Promise<ScopeStatus | null> {
   const manifest = await InstallManifest.read(installManifestPath(configBase, PACKAGE_NAME));
-  const legacySkillDir = join(configBase, "skills", SKILL_NAMES[0]);
-  if (!manifest.hasContents() && !(await exists(legacySkillDir))) {
+  const version = manifest.version;
+  if (version === null) {
     return null;
   }
-  const version = manifest.hasContents() ? manifest.version : await readLegacySkillVersion(legacySkillDir);
   const pluginInConfig = await isPluginInConfig(join(configBase, "opencode.json"));
   return { installed: true, version, pluginInConfig };
-}
-
-async function readLegacySkillVersion(skillDir: string): Promise<string | null> {
-  try {
-    return (await readFile(join(skillDir, ".version"), "utf-8")).trim();
-  } catch {
-    return null;
-  }
 }
