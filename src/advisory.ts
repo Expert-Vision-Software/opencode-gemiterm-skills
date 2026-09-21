@@ -1,6 +1,6 @@
 import type { PluginInput } from "@opencode-ai/plugin";
 import type { InstallResult } from "./installer.ts";
-import { PACKAGE_NAME } from "./installer.ts";
+import { PACKAGE_NAME, getPackageVersion } from "./installer.ts";
 import { RegistrationDetector } from "./registration.ts";
 
 const ADVISORY_TOAST_DURATION_MS = 10000;
@@ -61,6 +61,30 @@ export async function maybeEmitInstallAdvisory(context: AdvisoryContext): Promis
     return;
   }
   await emitAdvisoryOnce(context, INSTALL_ADVISORY_MESSAGE);
+}
+
+export async function emitFailureAdvisory(context: AdvisoryContext, error: unknown): Promise<void> {
+  let message: string;
+  try {
+    message = await buildFailureMessage(error);
+  } catch {
+    message =
+      `${PACKAGE_NAME} startup self-ensure failed and the package metadata is unreadable. ` +
+      `Remedies: run "bunx ${PACKAGE_NAME} install --scope global", or clear the plugin cache ` +
+      `under ~/.cache/opencode/packages/ and restart.`;
+  }
+  await logWarn(context, message);
+  await showToastAdvisory(context, message);
+}
+
+async function buildFailureMessage(error: unknown): Promise<string> {
+  const detail = error instanceof Error ? error.message : String(error);
+  const cacheDir = `~/.cache/opencode/packages/${PACKAGE_NAME}@${await getPackageVersion()}`;
+  return (
+    `${PACKAGE_NAME} startup self-ensure failed: ${detail}. Remedies: run ` +
+    `"bunx ${PACKAGE_NAME} install --scope global", or, if the OpenCode plugin cache is corrupt, ` +
+    `remove the cached copy and restart: "rm -rf ${cacheDir}".`
+  );
 }
 
 export async function reportLoadSkippedFiles(

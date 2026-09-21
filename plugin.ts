@@ -3,6 +3,7 @@ import { install, type Scope, type InstallResult } from "./src/installer.ts";
 import { RegistrationDetector } from "./src/registration.ts";
 import {
   createAdvisoryContext,
+  emitFailureAdvisory,
   maybeEmitInstallAdvisory,
   reportLoadSkippedFiles,
   type AdvisoryContext,
@@ -21,11 +22,15 @@ const plugin: Plugin = async ({ directory, client }: PluginInput) => {
 
   return {
     config: async (_input: Config) => {
-      const detected = await RegistrationDetector.detect(directory);
-      for (const scope of RegistrationDetector.scopesToEnsure(detected)) {
-        await ensureScopeAssets(advisory, scope);
+      try {
+        const detected = await RegistrationDetector.detect(directory);
+        for (const scope of RegistrationDetector.scopesToEnsure(detected)) {
+          await ensureScopeAssets(advisory, scope);
+        }
+        await maybeEmitInstallAdvisory(advisory);
+      } catch (error) {
+        await emitFailureAdvisory(advisory, error);
       }
-      await maybeEmitInstallAdvisory(advisory);
     },
   };
 };

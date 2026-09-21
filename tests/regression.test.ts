@@ -535,6 +535,25 @@ describe("regression contract", () => {
     expect(await fileExists(installManifestPath(localDir, PKG))).toBe(true);
   });
 
+  test("config hook degrades a failed install to one warn log and one warning toast, never rejecting", async () => {
+    const repo = await makeRepo();
+    const localDir = getLocalConfigPath(repo);
+    await registerRepoLocal(repo);
+    await writeMarker(join(localDir, "skills"), "not a directory");
+    const capturing = makeCapturingClient();
+
+    await expect(invokeConfigHook(repo, capturing.client)).resolves.toBeUndefined();
+
+    expect(capturing.logs.length).toBe(1);
+    expect(capturing.logs[0]?.body.level).toBe("warn");
+    expect(capturing.toasts.length).toBe(1);
+    expect(capturing.toasts[0]?.body.variant).toBe("warning");
+    expect(capturing.logs[0]?.body.message).toContain(`bunx ${PKG} install --scope global`);
+    expect(capturing.toasts[0]?.body.message).toContain(`bunx ${PKG} install --scope global`);
+    expect(capturing.logs[0]?.body.message).toContain(`~/.cache/opencode/packages/${PKG}@`);
+    expect(capturing.toasts[0]?.body.message).toContain(`~/.cache/opencode/packages/${PKG}@`);
+  });
+
   test("plugin hook: advisory fires exactly once per session with zero writes", async () => {
     const repo = await makeRepo();
     const logs: string[] = [];
