@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - `@opencode-ai/plugin` is now classified as a `devDependency`: every import in the shipped code is type-only and fully erased at runtime, so the published package declares **no runtime dependencies**.
+- devDependency ranges are pinned to the tested versions that are actually installed (`@types/bun@^1.3.14`, `@types/node@^26.6.2`) instead of floating `latest`, so installs no longer drift with whatever the registry publishes. The tracked `bun.lock` is the single source of truth, and the release workflow installs with `bun install --frozen-lockfile` so CI fails on a lockfile that does not match `package.json`.
 
 ## [1.0.0] - 2026-09-17
 
