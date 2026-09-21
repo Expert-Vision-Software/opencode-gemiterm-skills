@@ -1,18 +1,4 @@
 {
     "$schema": "https://opencode.ai/config.json",
-    "plugin": ["opencode-architect@latest"],
-    "skills": {
-        "paths": [
-            "../skills"
-        ]
-    },
-    "permission": {
-        "skill": {
-            "gemiterm": "allow",
-            "debate-with-gemini": "allow"
-        },
-        "external_directory": {
-            "~/.cache/opencode/packages/opencode-architect*/node_modules/opencode-architect/": "allow"
-        }
-    }
+    "plugin": ["opencode-architect@0.7.1"]
 }
