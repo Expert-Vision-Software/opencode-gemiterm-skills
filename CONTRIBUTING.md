@@ -29,7 +29,7 @@ The smoke test (`tests/skills.test.ts`) verifies:
 - The `metadata.requires: gemiterm` link on `debate-with-gemini` is preserved.
 - The `metadata.tool: gemiterm` link on `gemiterm` is preserved.
 - `.opencode/opencode.json` exists and registers at least one skill path.
-- `package.json` points `opencode.plugin` at `.opencode/opencode.json`.
+- `package.json` has no `opencode` key — registration comes from the consumer's `plugin` array, not a static package pointer.
 
 ## File layout
 
@@ -83,7 +83,7 @@ It also pre-grants `permission.skill: "allow"` for both skills and writes a `<pa
 
 ### Plugin load-time ensure
 
-When OpenCode loads the package via the `opencode.json` plugins array, `plugin.ts` performs read-only registration-scope detection (`src/registration.ts`): it checks where the package is registered — global config, the repo's `.opencode/opencode.json`, or a repo-root `opencode.json` — using semantic, `@latest`-aware name matching. Detection performs zero writes. Each detected scope is then ensured via the same manifest-gated installer used by the CLI, with `addPluginConfig`/`migrateRootConfig`/`force` disabled: the hook never edits `plugin` arrays, never migrates or deletes root configs, and never force-overwrites consumer-modified files. If the package is registered nowhere and no install exists in any scope, a one-shot advisory (log + toast) suggests running the CLI install.
+When OpenCode loads the package via the `opencode.json` `plugin` array, `plugin.ts` performs read-only registration-scope detection (`src/registration.ts`): it checks where the package is registered — global config, the repo's `.opencode/opencode.json` (or `.jsonc`), or a repo-root `opencode.json` (or `.jsonc`) — using semantic, `@latest`-aware name matching. Detection never keys off the launch directory and performs zero writes; `.jsonc` is parsed leniently (comments and trailing commas) while `.json` stays strict. Each detected scope is then ensured via the same manifest-gated installer used by the CLI, with `addPluginConfig`/`migrateRootConfig`/`force` disabled: the hook never edits `plugin` arrays, never migrates or deletes root configs, and never force-overwrites consumer-modified files. The hook body is wrapped in try/catch and degrades any failure to a warn log plus a warning toast naming the exact remediation (never a rethrow). If the package is registered nowhere and no install exists in any scope, a one-shot advisory (log + toast) suggests running the CLI install.
 
 A throwaway repro harness asserting the plugin-level contract (no repo writes for a globally-registered plugin, idempotent second start, one-shot advisory) lives at `Temp\opencode\gemiterm-repro\repro-global-mutation.ts` — run it with `bun <path>`; it is dev-config evidence, never commit it.
 
@@ -104,7 +104,7 @@ For local development against a checkout of this repo, reference the package dir
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": [
+  "plugin": [
     "file:///absolute/path/to/opencode-gemiterm-skills"
   ]
 }

@@ -26,10 +26,14 @@
 <skill name="debate-with-gemini" path="skills/debate-with-gemini/SKILL.md" requires="gemiterm skill + Bun-native CLI gemiterm" />
 </bundled_skills>
 
+<conventions>
+- **Peer parity: hooks never throw, and registration detection is config-based and format-tolerant.** The `config` hook (`plugin.ts`) wraps its body in try/catch: any failure degrades to a warn log + toast naming the exact remediation (`bunx opencode-gemiterm-skills install --scope global`, plus the `~/.cache/opencode/packages/opencode-gemiterm-skills@<version>` dir to clear for cache rot). It never rethrows, never auto-deletes the cache (that races OpenCode's in-flight installs), and hard errors stay CLI-only. Registration detection (`src/registration.ts`, `isPluginInConfigBase`) honors both `opencode.json` and `opencode.jsonc` in the global config dir, `.opencode/`, and the repo root — `.jsonc` is parsed leniently, `.json` stays strict — and detection never keys off the launch directory.
+</conventions>
+
 <self_config>
 <location>.opencode/opencode.json</location>
 <purpose>Register skills/ as a skill path and pre-allow both skills</purpose>
-<registration>Config hook via plugin.ts — NOT a package.json opencode key; tests/skills.test.ts asserts pkg.opencode is undefined</registration>
+<registration>No package.json opencode key (tests/skills.test.ts asserts pkg.opencode is undefined). Dev use is covered by skills.paths: ["../skills"]; this file does NOT self-register the package in its plugin array, so detection stays "none" for the maintainer checkout.</registration>
 </self_config>
 
 <consumer_install>
@@ -37,8 +41,8 @@
 <command>npm install opencode-gemiterm-skills</command>
 <opencode_json_snippet>
 {
-  "plugins": [
-    "opencode-gemiterm-skills"
+  "plugin": [
+    "opencode-gemiterm-skills@latest"
   ]
 }
 </opencode_json_snippet>
@@ -46,7 +50,7 @@
 <file_fallback>
 <opencode_json_snippet>
 {
-  "plugins": [
+  "plugin": [
     "file:///ABSOLUTE/PATH/TO/opencode-gemiterm-skills"
   ]
 }

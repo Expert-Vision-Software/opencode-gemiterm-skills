@@ -4,6 +4,19 @@ All notable changes to `opencode-gemiterm-skills` will be documented in this fil
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Registration detection no longer keys off the launch directory. The self-checkout carve-out (`directory === packageDir` ⇒ repo-local) is gone: detection is config-based only — the global config dir, the repo's `.opencode/`, and a repo-root config — so a plugin never infers registration from where it happens to be launched.
+- The `config` hook can no longer stall OpenCode startup: its entire body is wrapped in try/catch, and any failure (rotted plugin cache, unreadable package metadata, a blocked destination) degrades to a warn log plus a warning toast naming the exact remediation — never a rethrow. The hook never auto-deletes the cache, since that races OpenCode's in-flight installs; hard errors stay CLI-only.
+- Consumer install snippets now use the correct OpenCode config key `plugin` (singular), not `plugins`. The config schema sets `additionalProperties: false`, so `plugins` is invalid.
+
+### Added
+
+- Format-tolerant registration detection: `opencode.jsonc` is honored alongside `opencode.json` in the global config dir, `<repo>/.opencode/`, and the repo root. `.jsonc` files are parsed leniently — string-aware stripping of `//` and `/* */` comments and trailing commas, so `$schema` URLs survive — while `.json` stays strict. Config writes still target `opencode.json`.
+- Load-failure advisory (log + toast) with cache-rot remediation: when the `config` hook fails, the message names `bunx opencode-gemiterm-skills install --scope global` and the `~/.cache/opencode/packages/opencode-gemiterm-skills@<version>` directory to clear. The advisory builder itself is infallible, with a static fallback when package metadata is unreadable.
+
 ## [1.0.0] - 2026-09-17
 
 ### Changed
