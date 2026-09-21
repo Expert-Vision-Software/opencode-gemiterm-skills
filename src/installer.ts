@@ -151,6 +151,65 @@ function writtenSkillDirs(configBase: string, writtenRelativePaths: string[]): s
   return [...dirs];
 }
 
+function stripJsoncSyntax(source: string): string {
+  let stripped = "";
+  let inString = false;
+  let escaped = false;
+  for (let index = 0; index < source.length; index++) {
+    const char = source[index];
+    if (inString) {
+      stripped += char;
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+      stripped += char;
+      continue;
+    }
+    if (char === "/" && source[index + 1] === "/") {
+      while (index < source.length && source[index] !== "\n") {
+        index++;
+      }
+      continue;
+    }
+    if (char === "/" && source[index + 1] === "*") {
+      index += 2;
+      while (index < source.length && !(source[index] === "*" && source[index + 1] === "/")) {
+        index++;
+      }
+      index++;
+      continue;
+    }
+    if (char === ",") {
+      let next = index + 1;
+      while (next < source.length && /\s/.test(source[next])) {
+        next++;
+      }
+      if (source[next] === "}" || source[next] === "]") {
+        continue;
+      }
+    }
+    stripped += char;
+  }
+  return stripped;
+}
+
+function parseConfigContent(content: string, path: string): Record<string, unknown> | null {
+  const tolerated = path.endsWith(".jsonc") ? stripJsoncSyntax(content) : content;
+  try {
+    return JSON.parse(tolerated);
+  } catch {
+    return null;
+  }
+}
+
 async function readJsonConfig(path: string): Promise<Record<string, unknown> | null> {
   let content: string;
   try {
@@ -161,11 +220,7 @@ async function readJsonConfig(path: string): Promise<Record<string, unknown> | n
     }
     return null;
   }
-  try {
-    return JSON.parse(content);
-  } catch {
-    return null;
-  }
+  return parseConfigContent(content, path);
 }
 
 async function writeJsonConfig(path: string, config: Record<string, unknown>): Promise<void> {
@@ -265,6 +320,13 @@ export async function isPluginInConfig(configPath: string, packageName: string =
   }
   const plugins = config.plugin as string[];
   return plugins.some(entry => PluginNameNormalizer.matches(entry, packageName));
+}
+
+export async function isPluginInConfigBase(configBase: string, packageName: string): Promise<boolean> {
+  if (await isPluginInConfig(join(configBase, "opencode.json"), packageName)) {
+    return true;
+  }
+  return isPluginInConfig(join(configBase, "opencode.jsonc"), packageName);
 }
 
 export async function checkMigrationNeeded(projectDir: string): Promise<{

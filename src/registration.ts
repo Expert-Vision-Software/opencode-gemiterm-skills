@@ -3,9 +3,8 @@ import {
   PACKAGE_NAME,
   getGlobalConfigPath,
   getLocalConfigPath,
-  getPackageDir,
   isConfigUnparseable,
-  isPluginInConfig,
+  isPluginInConfigBase,
   isScopeInstalled,
   type Scope,
 } from "./installer.ts";
@@ -22,10 +21,7 @@ const SCOPES_BY_CONTEXT: Record<RegistrationContext, Scope[]> = {
 export class RegistrationDetector {
   static async detect(directory: string): Promise<RegistrationContext> {
     const globalRegistered = await RegistrationDetector.checkGlobalRegistration();
-
-    const isSelfCheckout = join(directory) === join(getPackageDir());
-    const repoLocalRegistered = isSelfCheckout ||
-      await RegistrationDetector.isRegisteredInRepo(directory);
+    const repoLocalRegistered = await RegistrationDetector.isRegisteredInRepo(directory);
 
     if (globalRegistered && repoLocalRegistered) {
       return "both";
@@ -51,27 +47,28 @@ export class RegistrationDetector {
   }
 
   private static async checkGlobalRegistration(): Promise<boolean> {
-    const configPath = join(getGlobalConfigPath(), "opencode.json");
-    if (await isConfigUnparseable(configPath)) {
-      RegistrationDetector.warnUnparseable(configPath);
-      return false;
-    }
-    return isPluginInConfig(configPath);
+    const configBase = getGlobalConfigPath();
+    await RegistrationDetector.warnUnparseableCandidates(configBase);
+    return isPluginInConfigBase(configBase, PACKAGE_NAME);
   }
 
   private static async isRegisteredInRepo(directory: string): Promise<boolean> {
-    const nestedConfigPath = join(getLocalConfigPath(directory), "opencode.json");
-    if (await isConfigUnparseable(nestedConfigPath)) {
-      RegistrationDetector.warnUnparseable(nestedConfigPath);
-    } else if (await isPluginInConfig(nestedConfigPath)) {
+    const nestedConfigBase = getLocalConfigPath(directory);
+    await RegistrationDetector.warnUnparseableCandidates(nestedConfigBase);
+    if (await isPluginInConfigBase(nestedConfigBase, PACKAGE_NAME)) {
       return true;
     }
-    const rootConfigPath = join(directory, "opencode.json");
-    if (await isConfigUnparseable(rootConfigPath)) {
-      RegistrationDetector.warnUnparseable(rootConfigPath);
-      return false;
+    await RegistrationDetector.warnUnparseableCandidates(directory);
+    return isPluginInConfigBase(directory, PACKAGE_NAME);
+  }
+
+  private static async warnUnparseableCandidates(configBase: string): Promise<void> {
+    for (const fileName of ["opencode.json", "opencode.jsonc"]) {
+      const configPath = join(configBase, fileName);
+      if (await isConfigUnparseable(configPath)) {
+        RegistrationDetector.warnUnparseable(configPath);
+      }
     }
-    return isPluginInConfig(rootConfigPath);
   }
 
   private static warnUnparseable(configPath: string): void {

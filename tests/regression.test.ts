@@ -6,7 +6,9 @@ import {
   install,
   status,
   migrateRootConfig,
+  isConfigUnparseable,
   isPluginInConfig,
+  isPluginInConfigBase,
   getGlobalConfigPath,
   getLocalConfigPath,
   getPackageDir,
@@ -60,6 +62,49 @@ async function writeMarker(p: string, content: string): Promise<string> {
 
 async function readText(p: string): Promise<string> {
   return readFile(p, "utf-8");
+}
+
+interface CapturingClient {
+  logs: Array<{ body: { service: string; level: string; message: string } }>;
+  toasts: Array<{ body: { title: string; message: string; variant: string } }>;
+  client: {
+    app: { log: (entry: { body: { service: string; level: string; message: string } }) => Promise<void> };
+    tui: { showToast: (entry: { body: { title: string; message: string; variant: string } }) => Promise<void> };
+  };
+}
+
+function makeCapturingClient(): CapturingClient {
+  const logs: CapturingClient["logs"] = [];
+  const toasts: CapturingClient["toasts"] = [];
+  return {
+    logs,
+    toasts,
+    client: {
+      app: { log: async (entry) => { logs.push(entry); } },
+      tui: { showToast: async (entry) => { toasts.push(entry); } },
+    },
+  };
+}
+
+async function invokeConfigHook(directory: string, client: unknown = undefined): Promise<void> {
+  const service = await (plugin as never as (input: unknown) => Promise<{ config: (c: unknown) => Promise<void> }>)({
+    directory,
+    client,
+  });
+  await service.config({});
+}
+
+function lenientJsoncFixture(packageName: string): string {
+  return [
+    "{",
+    "  // repo-local registration for this checkout",
+    '  "$schema": "https://opencode.ai/config.json",',
+    "  /* block comment: trailing comma follows */",
+    '  "plugin": [',
+    `    "${packageName}",`,
+    "  ],",
+    "}",
+  ].join("\n");
 }
 
 beforeAll(async () => {
@@ -133,6 +178,79 @@ describe("registration detection", () => {
     const repo = await makeRepo();
     await registerRepoLocal(repo, true);
     expect(await RegistrationDetector.detect(repo)).toBe("repo-local");
+  });
+
+  test("returns global for a global opencode.jsonc registration", async () => {
+    const repo = await makeRepo();
+    await writeFile(join(globalBase(), "opencode.jsonc"), JSON.stringify({ plugin: [PKG] }));
+
+    expect(await RegistrationDetector.detect(repo)).toBe("global");
+  });
+
+  test("returns repo-local for a nested .opencode/opencode.jsonc registration", async () => {
+    const repo = await makeRepo();
+    await mkdir(join(repo, ".opencode"), { recursive: true });
+    await writeFile(join(repo, ".opencode", "opencode.jsonc"), JSON.stringify({ plugin: [PKG] }));
+
+    expect(await RegistrationDetector.detect(repo)).toBe("repo-local");
+  });
+
+  test("returns repo-local for a repo-root opencode.jsonc registration", async () => {
+    const repo = await makeRepo();
+    await writeFile(join(repo, "opencode.jsonc"), JSON.stringify({ plugin: [PKG] }));
+
+    expect(await RegistrationDetector.detect(repo)).toBe("repo-local");
+  });
+
+  test("returns both when global jsonc and nested json register the package", async () => {
+    const repo = await makeRepo();
+    await writeFile(join(globalBase(), "opencode.jsonc"), JSON.stringify({ plugin: [PKG] }));
+    await registerRepoLocal(repo);
+
+    expect(await RegistrationDetector.detect(repo)).toBe("both");
+  });
+
+  test("tolerates comments, block comments, trailing commas and a $schema URL in opencode.jsonc", async () => {
+    const repo = await makeRepo();
+    await writeFile(join(repo, "opencode.jsonc"), lenientJsoncFixture(PKG));
+
+    expect(await RegistrationDetector.detect(repo)).toBe("repo-local");
+  });
+
+  test(".json stays strict: comments make it unparseable and detection falls through to .jsonc", async () => {
+    const repo = await makeRepo();
+    const strictPath = join(repo, "opencode.json");
+    const strictContent = `{ // not valid JSON\n  "plugin": ["${PKG}"]\n}`;
+    await writeFile(strictPath, strictContent);
+
+    expect(await isConfigUnparseable(strictPath)).toBe(true);
+    expect(await isPluginInConfigBase(repo, PKG)).toBe(false);
+    expect(await readText(strictPath)).toBe(strictContent);
+
+    await writeFile(join(repo, "opencode.jsonc"), JSON.stringify({ plugin: [PKG] }));
+    expect(await RegistrationDetector.detect(repo)).toBe("repo-local");
+  });
+
+  test(".jsonc is lenient: comments and trailing commas are tolerated and preserved", async () => {
+    const repo = await makeRepo();
+    const jsoncPath = join(repo, "opencode.jsonc");
+    const content = lenientJsoncFixture(PKG);
+    await writeFile(jsoncPath, content);
+
+    expect(await isConfigUnparseable(jsoncPath)).toBe(false);
+    expect(await isPluginInConfigBase(repo, PKG)).toBe(true);
+    expect(await readText(jsoncPath)).toBe(content);
+  });
+
+  test("truly malformed .jsonc still reports unparseable and is preserved", async () => {
+    const repo = await makeRepo();
+    const jsoncPath = join(repo, "opencode.jsonc");
+    const content = `{ "plugin": [ }`;
+    await writeFile(jsoncPath, content);
+
+    expect(await isConfigUnparseable(jsoncPath)).toBe(true);
+    expect(await isPluginInConfigBase(repo, PKG)).toBe(false);
+    expect(await readText(jsoncPath)).toBe(content);
   });
 });
 
@@ -396,8 +514,25 @@ describe("regression contract", () => {
     expect(await RegistrationDetector.hasAnyInstallation(repo)).toBe(true);
   });
 
-  test("self-checkout is detected as repo-local without any registration", async () => {
-    expect(await RegistrationDetector.detect(getPackageDir())).toBe("repo-local");
+  test("the package checkout with no registration is detected as none (detection is config-based)", async () => {
+    expect(await RegistrationDetector.detect(getPackageDir())).toBe("none");
+  });
+
+  test("repo-local opencode.jsonc registration ensures assets, preserves the jsonc, and creates no opencode.json", async () => {
+    const repo = await makeRepo();
+    const localDir = getLocalConfigPath(repo);
+    await mkdir(localDir, { recursive: true });
+    const jsoncPath = join(localDir, "opencode.jsonc");
+    const jsoncContent = lenientJsoncFixture(PKG);
+    await writeFile(jsoncPath, jsoncContent);
+
+    await invokeConfigHook(repo);
+
+    expect(await readText(jsoncPath)).toBe(jsoncContent);
+    expect(await fileExists(join(localDir, "opencode.json"))).toBe(false);
+    expect(await fileExists(join(localDir, "skills", "gemiterm", "SKILL.md"))).toBe(true);
+    expect(await fileExists(join(localDir, "skills", "debate-with-gemini", "SKILL.md"))).toBe(true);
+    expect(await fileExists(installManifestPath(localDir, PKG))).toBe(true);
   });
 
   test("plugin hook: advisory fires exactly once per session with zero writes", async () => {
