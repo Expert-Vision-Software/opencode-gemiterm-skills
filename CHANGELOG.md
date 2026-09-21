@@ -17,6 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Format-tolerant registration detection: `opencode.jsonc` is honored alongside `opencode.json` in the global config dir, `<repo>/.opencode/`, and the repo root. `.jsonc` files are parsed leniently — string-aware stripping of `//` and `/* */` comments and trailing commas, so `$schema` URLs survive — while `.json` stays strict. Config writes still target `opencode.json`.
 - Load-failure advisory (log + toast) with cache-rot remediation: when the `config` hook fails, the message names `bunx opencode-gemiterm-skills install --scope global` and the `~/.cache/opencode/packages/opencode-gemiterm-skills@<version>` directory to clear. The advisory builder itself is infallible, with a static fallback when package metadata is unreadable.
 
+### Changed
+
+- `@opencode-ai/plugin` is now classified as a `devDependency`: every import in the shipped code is type-only and fully erased at runtime, so the published package declares **no runtime dependencies**.
+
 ## [1.0.0] - 2026-09-17
 
 ### Changed

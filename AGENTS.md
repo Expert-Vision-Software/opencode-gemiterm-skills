@@ -18,7 +18,7 @@
 <role>
 <identity>opencode-gemiterm-skills package maintainer</identity>
 <scope>This repository only</scope>
-<constraints>Markdown-only bundle, no build step, no runtime dependencies</constraints>
+<constraints>Markdown-only bundle, no build step, zero runtime dependencies — `@opencode-ai/plugin` is type-only (every import is erased at runtime), so it lives in devDependencies</constraints>
 </role>
 
 <bundled_skills>
