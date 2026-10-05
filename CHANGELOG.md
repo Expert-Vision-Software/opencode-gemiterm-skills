@@ -4,6 +4,16 @@ All notable changes to `opencode-gemiterm-skills` will be documented in this fil
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-05
+
+### Added
+
+- Conformance with the `opencode-architect` 0.9.2 packaging checklist:
+  - The plugin hook now lives at `src/plugin.ts` (the package root holds only the `index.ts` entry), and `package.json` declares `"content": "code"`.
+  - Surgical config writes (new `src/splice.ts`): `install`, `uninstall`, and permission ensures splice the raw text of an existing consumer `opencode.json`/`opencode.jsonc` — comments, indentation, and formatting outside the touched entry are preserved byte-for-byte. Whole-file serialization is used only for brand-new files; malformed files are warned about, never rewritten.
+  - Cache hygiene: CLI installs prune this package's own stale cache copies (`@latest`, `@<version>`) under `$XDG_CACHE_HOME/opencode/packages` (fallback `~/.cache/...`), and a new self-only `clear-cache` subcommand reports exactly what was removed (or "Nothing to clear"). The load hook never deletes cache — `pruneCache` is false on that path, with a regression test asserting sibling cache copies survive a hook-driven install.
+  - All skill frontmatter values are double-quoted (the `metadata.requires: "gemiterm"` link is unchanged), the README badge row is a single line, and `prepublishOnly` verifies the tarball via `npm pack --dry-run` (`scripts/verify-pack.sh`).
+
 ## [1.1.0] - 2026-09-21
 
 ### Fixed
