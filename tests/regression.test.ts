@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   install,
+  uninstall,
   status,
   migrateRootConfig,
   isConfigUnparseable,
@@ -12,12 +13,15 @@ import {
   getGlobalConfigPath,
   getLocalConfigPath,
   getPackageDir,
+  addPluginToConfig,
+  removePluginFromConfig,
+  ensureSkillPermissions,
   type InstallOptions,
 } from "../src/installer.ts";
 import { RegistrationDetector } from "../src/registration.ts";
 import { installManifestPath } from "../src/manifest.ts";
 import { failureFallbackMessage } from "../src/advisory.ts";
-import plugin from "../plugin.ts";
+import plugin from "../src/plugin.ts";
 
 const PKG = "opencode-gemiterm-skills";
 const LOAD_OPTIONS: InstallOptions = { addPluginConfig: false, migrateRootConfig: false, ensurePermissions: false, force: false };
@@ -703,5 +707,98 @@ describe("regression contract", () => {
     expect(healed.action).toBe("installed");
     expect(await fileExists(installManifestPath(base, PKG))).toBe(true);
     expect((await status(repo)).local?.version).toBeTruthy();
+  });
+});
+
+describe("surgical config splice", () => {
+  const SPLICE_OPTIONS: InstallOptions = { addPluginConfig: true, migrateRootConfig: false, ensurePermissions: true, force: false };
+
+  function indentedConsumerConfig(): string {
+    return [
+      "{",
+      '    "$schema": "https://opencode.ai/config.json",',
+      '    "theme": "dark",',
+      '    "plugin": [',
+      '        "other-pkg"',
+      "    ],",
+      '    "permission": {',
+      '        "skill": {',
+      '            "gemiterm": "allow",',
+      '            "debate-with-gemini": "allow"',
+      "        }",
+      "    }",
+      "}",
+      "",
+    ].join("\n");
+  }
+
+  test("CLI install/uninstall leaves the config byte-identical outside the modified plugin array", async () => {
+    const repo = await makeRepo();
+    const localDir = getLocalConfigPath(repo);
+    await mkdir(localDir, { recursive: true });
+    const configPath = join(localDir, "opencode.json");
+    const original = indentedConsumerConfig();
+    await writeFile(configPath, original);
+
+    await install("local", repo, SPLICE_OPTIONS);
+
+    const afterInstall = await readText(configPath);
+    expect(afterInstall).toContain(`"${PKG}@latest"`);
+    expect(afterInstall).toContain('"theme": "dark"');
+    expect(JSON.parse(afterInstall).plugin).toContain(`${PKG}@latest`);
+
+    await uninstall("local", repo);
+
+    expect(await readText(configPath)).toBe(original);
+  });
+
+  test("plugin add/remove splices preserve jsonc comments and unusual indentation", async () => {
+    const repo = await makeRepo();
+    const jsoncPath = join(repo, "opencode.jsonc");
+    const original = lenientJsoncFixture("other-pkg");
+    await writeFile(jsoncPath, original);
+
+    expect(await addPluginToConfig(jsoncPath)).toBe(true);
+
+    const afterAdd = await readText(jsoncPath);
+    expect(afterAdd).toContain(`"${PKG}@latest"`);
+    expect(afterAdd).toContain("// repo-local registration for this checkout");
+    expect(afterAdd).toContain("/* block comment: trailing comma follows */");
+
+    expect(await removePluginFromConfig(jsoncPath)).toBe(true);
+    expect(await readText(jsoncPath)).toBe(original);
+  });
+
+  test("ensureSkillPermissions splices nested permission entries without destroying jsonc formatting", async () => {
+    const repo = await makeRepo();
+    const jsoncPath = join(repo, "opencode.jsonc");
+    const original = [
+      "{",
+      "  // skill permissions for this checkout",
+      '  "theme": "dark",',
+      "}",
+    ].join("\n");
+    await writeFile(jsoncPath, original);
+
+    expect(await ensureSkillPermissions(jsoncPath, ["gemiterm", "debate-with-gemini"])).toBe(true);
+
+    const updated = await readText(jsoncPath);
+    expect(updated).toContain("// skill permissions for this checkout");
+    expect(updated).toContain('"gemiterm": "allow"');
+    expect(updated).toContain('"debate-with-gemini": "allow"');
+
+    expect(await ensureSkillPermissions(jsoncPath, ["gemiterm", "debate-with-gemini"])).toBe(false);
+    expect(await readText(jsoncPath)).toBe(updated);
+  });
+
+  test("refuses to splice a malformed config and leaves it unchanged", async () => {
+    const repo = await makeRepo();
+    const jsoncPath = join(repo, "opencode.jsonc");
+    const broken = '{ "plugin": [ }';
+    await writeFile(jsoncPath, broken);
+
+    expect(await addPluginToConfig(jsoncPath)).toBe(false);
+    expect(await ensureSkillPermissions(jsoncPath, ["gemiterm"])).toBe(false);
+    expect(await readText(jsoncPath)).toBe(broken);
   });
 });

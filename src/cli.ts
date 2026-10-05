@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { installCommand } from "./commands/install.ts";
 import { uninstallCommand } from "./commands/uninstall.ts";
 import { statusCommand } from "./commands/status.ts";
+import { clearCacheCommand } from "./commands/clear-cache.ts";
 import type { Scope } from "./installer.ts";
 
 const VERSION = JSON.parse(
@@ -19,6 +20,7 @@ Commands:
   install     Copy skills to .opencode/skills/ and register in opencode.json
   uninstall   Remove installed skills from .opencode/skills/
   status      Check installation status
+  clear-cache Remove cached copies of this package from the opencode package cache
 
 Options:
   -s, --scope <scope>    Installation scope: "local" (default) or "global"
@@ -76,6 +78,9 @@ async function main(): Promise<void> {
         break;
       case "status":
         await statusCommand();
+        break;
+      case "clear-cache":
+        await clearCacheCommand();
         break;
       default:
         console.error(`Unknown command: ${command}`);

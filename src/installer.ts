@@ -4,6 +4,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PluginNameNormalizer } from "./plugin-name.ts";
 import { InstallManifest, installManifestPath, toManifestPath, type ManifestFileEntry } from "./manifest.ts";
+import { ConfigTextSplicer } from "./splice.ts";
+import { PackageCacheCleaner } from "./cache.ts";
 
 export type Scope = "local" | "global";
 
@@ -152,82 +154,8 @@ function writtenSkillDirs(configBase: string, writtenRelativePaths: string[]): s
   return [...dirs];
 }
 
-function stripJsoncSyntax(source: string): string {
-  let stripped = "";
-  let inString = false;
-  let escaped = false;
-  for (let index = 0; index < source.length; index++) {
-    const char = source[index];
-    if (inString) {
-      stripped += char;
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === '"') {
-        inString = false;
-      }
-      continue;
-    }
-    if (char === '"') {
-      inString = true;
-      stripped += char;
-      continue;
-    }
-    if (char === "/" && source[index + 1] === "/") {
-      while (index < source.length && source[index] !== "\n") {
-        index++;
-      }
-      continue;
-    }
-    if (char === "/" && source[index + 1] === "*") {
-      index += 2;
-      while (index < source.length && !(source[index] === "*" && source[index + 1] === "/")) {
-        index++;
-      }
-      index++;
-      continue;
-    }
-    if (char === ",") {
-      const next = skipJsoncTrivia(source, index + 1);
-      if (source[next] === "}" || source[next] === "]") {
-        continue;
-      }
-    }
-    stripped += char;
-  }
-  return stripped;
-}
-
-function skipJsoncTrivia(source: string, start: number): number {
-  let index = start;
-  while (index < source.length) {
-    const char = source[index];
-    if (/\s/.test(char)) {
-      index++;
-      continue;
-    }
-    if (char === "/" && source[index + 1] === "/") {
-      while (index < source.length && source[index] !== "\n") {
-        index++;
-      }
-      continue;
-    }
-    if (char === "/" && source[index + 1] === "*") {
-      index += 2;
-      while (index < source.length && !(source[index] === "*" && source[index + 1] === "/")) {
-        index++;
-      }
-      index += 2;
-      continue;
-    }
-    break;
-  }
-  return index;
-}
-
 function parseConfigContent(content: string, path: string): Record<string, unknown> | null {
-  const tolerated = path.endsWith(".jsonc") ? stripJsoncSyntax(content) : content;
+  const tolerated = path.endsWith(".jsonc") ? ConfigTextSplicer.stripJsoncSyntax(content) : content;
   try {
     return JSON.parse(tolerated);
   } catch {
@@ -271,68 +199,74 @@ export async function isConfigUnparseable(configPath: string): Promise<boolean> 
   return (await readJsonConfig(configPath)) === null;
 }
 
-async function ensureSkillPermissions(configPath: string, skillNames: readonly string[]): Promise<boolean> {
-  const config = await readConfigGuarded(configPath);
-  if (config === null) {
-    return false;
-  }
-
-  if (!config.permission) config.permission = {};
-  if (!(config.permission as Record<string, unknown>).skill) (config.permission as Record<string, unknown>).skill = {};
-  const skillPerms = (config.permission as Record<string, unknown>).skill as Record<string, unknown>;
-  let changed = false;
-  for (const name of skillNames) {
-    if (skillPerms[name] !== "allow") {
-      skillPerms[name] = "allow";
-      changed = true;
+async function applyConfigSplice(
+  configPath: string,
+  mutation: (splicer: ConfigTextSplicer) => boolean,
+): Promise<boolean> {
+  let raw: string;
+  try {
+    raw = await readFile(configPath, "utf-8");
+  } catch (error) {
+    if (isFileNotFoundError(error)) {
+      return false;
     }
+    throw error;
   }
-  if (changed) {
+  const lenient = configPath.endsWith(".jsonc");
+  if (!ConfigTextSplicer.isParseable(raw, lenient)) {
+    console.warn(
+      `[${PACKAGE_NAME}] Refusing to splice ${configPath}: the file is not valid JSON. ` +
+        `Fix or remove the file, then re-run install. The file was left unchanged.`
+    );
+    return false;
+  }
+  const splicer = new ConfigTextSplicer(raw);
+  if (!mutation(splicer)) {
+    return false;
+  }
+  await writeFile(configPath, splicer.content);
+  return true;
+}
+
+export async function ensureSkillPermissions(configPath: string, skillNames: readonly string[]): Promise<boolean> {
+  if (!(await exists(configPath))) {
+    const skillPerms: Record<string, string> = {};
+    for (const name of skillNames) {
+      skillPerms[name] = "allow";
+    }
+    await writeJsonConfig(configPath, { permission: { skill: skillPerms } });
+    return true;
+  }
+  return applyConfigSplice(configPath, (splicer) => {
+    let changed = false;
+    for (const name of skillNames) {
+      if (splicer.ensureStringMember(["permission", "skill"], name, "allow")) {
+        changed = true;
+      }
+    }
+    return changed;
+  });
+}
+
+export async function addPluginToConfig(configPath: string): Promise<boolean> {
+  if (!(await exists(configPath))) {
+    const config: Record<string, unknown> = { plugin: [PluginNameNormalizer.canonicalize(PACKAGE_NAME)] };
     await writeJsonConfig(configPath, config);
+    return true;
   }
-  return changed;
+  return applyConfigSplice(configPath, (splicer) => {
+    if (splicer.hasArrayEntryMatching("plugin", isOurPluginEntry)) {
+      return false;
+    }
+    return splicer.addToArrayEntry("plugin", PluginNameNormalizer.canonicalize(PACKAGE_NAME));
+  });
 }
 
-async function addPluginToConfig(configPath: string): Promise<boolean> {
-  const config = await readConfigGuarded(configPath);
-  if (config === null) {
+export async function removePluginFromConfig(configPath: string): Promise<boolean> {
+  if (!(await exists(configPath))) {
     return false;
   }
-
-  if (!config.plugin) {
-    config.plugin = [];
-  }
-
-  const plugins = config.plugin as string[];
-  if (plugins.some(isOurPluginEntry)) {
-    return false;
-  }
-
-  plugins.push(PluginNameNormalizer.canonicalize(PACKAGE_NAME));
-  config.plugin = plugins;
-
-  await writeJsonConfig(configPath, config);
-  return true;
-}
-
-async function removePluginFromConfig(configPath: string): Promise<boolean> {
-  const config = await readConfigGuarded(configPath);
-  if (config === null) {
-    return false;
-  }
-
-  if (!config.plugin) {
-    return false;
-  }
-
-  const plugins = config.plugin as string[];
-  const filtered = plugins.filter((p) => !isOurPluginEntry(p));
-  if (filtered.length === plugins.length) return false;
-  if (filtered.length === 0) delete config.plugin;
-  else config.plugin = filtered;
-
-  await writeJsonConfig(configPath, config);
-  return true;
+  return applyConfigSplice(configPath, (splicer) => splicer.removeArrayEntries("plugin", isOurPluginEntry));
 }
 
 export async function isPluginInConfig(configPath: string, packageName: string = PACKAGE_NAME): Promise<boolean> {
@@ -470,6 +404,8 @@ export async function install(
   if (addPluginConfig) {
     pluginAdded = await addPluginToConfig(configPath);
   }
+
+  await new PackageCacheCleaner(PACKAGE_NAME).prune(true);
 
   return {
     action,

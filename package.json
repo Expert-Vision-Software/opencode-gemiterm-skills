@@ -22,9 +22,9 @@
     "bun": ">=1.0.0"
   },
   "sideEffects": false,
+  "content": "code",
   "files": [
     "index.ts",
-    "plugin.ts",
     "src",
     "skills",
     "README.md",
@@ -35,7 +35,7 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test": "bun test",
-    "prepublishOnly": "bun run check && bun test"
+    "prepublishOnly": "bun run check && bun test && bash scripts/verify-pack.sh"
   },
   "devDependencies": {
     "@opencode-ai/plugin": "^1.18.31",
