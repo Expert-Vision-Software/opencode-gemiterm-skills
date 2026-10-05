@@ -1,11 +1,11 @@
 ---
-name: gemiterm
-description: Google Gemini Terminal CLI wrapper for listing chats, fetching transcripts, exporting conversations, managing profiles, and sending messages via gemiterm new/continue. Use when the user asks to read, list, export, or interact with Gemini chat history, send or continue a Gemini chat from a terminal, or invokes "gemiterm" commands.
-license: MIT
-compatibility: opencode, claude-code, and any skill-compatible agent
+name: "gemiterm"
+description: "Google Gemini Terminal CLI wrapper for listing chats, fetching transcripts, exporting conversations, managing profiles, and sending messages via gemiterm new/continue. Use when the user asks to read, list, export, or interact with Gemini chat history, send or continue a Gemini chat from a terminal, or invokes \"gemiterm\" commands."
+license: "MIT"
+compatibility: "opencode, claude-code, and any skill-compatible agent"
 metadata:
-  tool: gemiterm
-  runtime: bun
+  tool: "gemiterm"
+  runtime: "bun"
 ---
 
 # GemiTerm — Google Gemini Terminal CLI

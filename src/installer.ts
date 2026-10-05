@@ -4,6 +4,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PluginNameNormalizer } from "./plugin-name.ts";
 import { InstallManifest, installManifestPath, toManifestPath, type ManifestFileEntry } from "./manifest.ts";
+import { ConfigTextSplicer } from "./splice.ts";
+import { PackageCacheCleaner } from "./cache.ts";
 
 export type Scope = "local" | "global";
 
@@ -12,6 +14,7 @@ export interface InstallOptions {
   migrateRootConfig: boolean;
   ensurePermissions: boolean;
   force: boolean;
+  pruneCache: boolean;
 }
 
 export type InstallAction = "installed" | "upgraded" | "noop";
@@ -152,82 +155,8 @@ function writtenSkillDirs(configBase: string, writtenRelativePaths: string[]): s
   return [...dirs];
 }
 
-function stripJsoncSyntax(source: string): string {
-  let stripped = "";
-  let inString = false;
-  let escaped = false;
-  for (let index = 0; index < source.length; index++) {
-    const char = source[index];
-    if (inString) {
-      stripped += char;
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === '"') {
-        inString = false;
-      }
-      continue;
-    }
-    if (char === '"') {
-      inString = true;
-      stripped += char;
-      continue;
-    }
-    if (char === "/" && source[index + 1] === "/") {
-      while (index < source.length && source[index] !== "\n") {
-        index++;
-      }
-      continue;
-    }
-    if (char === "/" && source[index + 1] === "*") {
-      index += 2;
-      while (index < source.length && !(source[index] === "*" && source[index + 1] === "/")) {
-        index++;
-      }
-      index++;
-      continue;
-    }
-    if (char === ",") {
-      const next = skipJsoncTrivia(source, index + 1);
-      if (source[next] === "}" || source[next] === "]") {
-        continue;
-      }
-    }
-    stripped += char;
-  }
-  return stripped;
-}
-
-function skipJsoncTrivia(source: string, start: number): number {
-  let index = start;
-  while (index < source.length) {
-    const char = source[index];
-    if (/\s/.test(char)) {
-      index++;
-      continue;
-    }
-    if (char === "/" && source[index + 1] === "/") {
-      while (index < source.length && source[index] !== "\n") {
-        index++;
-      }
-      continue;
-    }
-    if (char === "/" && source[index + 1] === "*") {
-      index += 2;
-      while (index < source.length && !(source[index] === "*" && source[index + 1] === "/")) {
-        index++;
-      }
-      index += 2;
-      continue;
-    }
-    break;
-  }
-  return index;
-}
-
 function parseConfigContent(content: string, path: string): Record<string, unknown> | null {
-  const tolerated = path.endsWith(".jsonc") ? stripJsoncSyntax(content) : content;
+  const tolerated = path.endsWith(".jsonc") ? ConfigTextSplicer.stripJsoncSyntax(content) : content;
   try {
     return JSON.parse(tolerated);
   } catch {
@@ -271,68 +200,117 @@ export async function isConfigUnparseable(configPath: string): Promise<boolean> 
   return (await readJsonConfig(configPath)) === null;
 }
 
-async function ensureSkillPermissions(configPath: string, skillNames: readonly string[]): Promise<boolean> {
-  const config = await readConfigGuarded(configPath);
-  if (config === null) {
+async function applyConfigSplice(
+  configPath: string,
+  mutation: (splicer: ConfigTextSplicer) => boolean,
+): Promise<boolean> {
+  let raw: string;
+  try {
+    raw = await readFile(configPath, "utf-8");
+  } catch (error) {
+    if (isFileNotFoundError(error)) {
+      return false;
+    }
+    throw error;
+  }
+  const lenient = configPath.endsWith(".jsonc");
+  if (!ConfigTextSplicer.isParseable(raw, lenient)) {
+    console.warn(
+      `[${PACKAGE_NAME}] Refusing to splice ${configPath}: the file is not valid JSON. ` +
+        `Fix or remove the file, then re-run install. The file was left unchanged.`
+    );
     return false;
   }
+  const splicer = new ConfigTextSplicer(raw);
+  if (!mutation(splicer)) {
+    return false;
+  }
+  await writeFile(configPath, splicer.content);
+  return true;
+}
 
-  if (!config.permission) config.permission = {};
-  if (!(config.permission as Record<string, unknown>).skill) (config.permission as Record<string, unknown>).skill = {};
-  const skillPerms = (config.permission as Record<string, unknown>).skill as Record<string, unknown>;
-  let changed = false;
-  for (const name of skillNames) {
-    if (skillPerms[name] !== "allow") {
+export async function ensureSkillPermissions(configPath: string, skillNames: readonly string[]): Promise<boolean> {
+  if (!(await exists(configPath))) {
+    const skillPerms: Record<string, string> = {};
+    for (const name of skillNames) {
       skillPerms[name] = "allow";
-      changed = true;
+    }
+    await writeJsonConfig(configPath, { permission: { skill: skillPerms } });
+    return true;
+  }
+  await warnOnUnsplicablePermissionEntries(configPath, skillNames);
+  return applyConfigSplice(configPath, (splicer) => {
+    let changed = false;
+    for (const name of skillNames) {
+      if (splicer.ensureStringMember(["permission", "skill"], name, "allow")) {
+        changed = true;
+      }
+    }
+    return changed;
+  });
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function warnOnUnsplicablePermissionEntries(configPath: string, skillNames: readonly string[]): Promise<void> {
+  const config = await readJsonConfig(configPath);
+  if (config === null) {
+    return;
+  }
+  const permission = config.permission;
+  if (permission !== undefined && !isPlainObject(permission)) {
+    console.warn(
+      `[${PACKAGE_NAME}] Refusing to update skill permissions in ${configPath}: ` +
+        `"permission" is not an object. The file was left unchanged for that entry.`
+    );
+    return;
+  }
+  if (!isPlainObject(permission)) {
+    return;
+  }
+  const skill = permission.skill;
+  if (skill !== undefined && !isPlainObject(skill)) {
+    console.warn(
+      `[${PACKAGE_NAME}] Refusing to update skill permissions in ${configPath}: ` +
+        `"permission.skill" is not an object. The file was left unchanged for that entry.`
+    );
+    return;
+  }
+  if (!isPlainObject(skill)) {
+    return;
+  }
+  for (const name of skillNames) {
+    const entry = skill[name];
+    if (entry !== undefined && typeof entry !== "string") {
+      console.warn(
+        `[${PACKAGE_NAME}] Refusing to update the skill permission for "${name}" in ${configPath}: ` +
+          `the existing entry is not a string. The file was left unchanged for that entry.`
+      );
     }
   }
-  if (changed) {
+}
+
+export async function addPluginToConfig(configPath: string): Promise<boolean> {
+  if (!(await exists(configPath))) {
+    const config: Record<string, unknown> = { plugin: [PluginNameNormalizer.canonicalize(PACKAGE_NAME)] };
     await writeJsonConfig(configPath, config);
+    return true;
   }
-  return changed;
+  return applyConfigSplice(configPath, (splicer) => {
+    if (splicer.hasArrayEntryMatching("plugin", isOurPluginEntry)) {
+      return false;
+    }
+    return splicer.addToArrayEntry("plugin", PluginNameNormalizer.canonicalize(PACKAGE_NAME));
+  });
 }
 
-async function addPluginToConfig(configPath: string): Promise<boolean> {
-  const config = await readConfigGuarded(configPath);
-  if (config === null) {
+export async function removePluginFromConfig(configPath: string): Promise<boolean> {
+  if (!(await exists(configPath))) {
     return false;
   }
-
-  if (!config.plugin) {
-    config.plugin = [];
-  }
-
-  const plugins = config.plugin as string[];
-  if (plugins.some(isOurPluginEntry)) {
-    return false;
-  }
-
-  plugins.push(PluginNameNormalizer.canonicalize(PACKAGE_NAME));
-  config.plugin = plugins;
-
-  await writeJsonConfig(configPath, config);
-  return true;
-}
-
-async function removePluginFromConfig(configPath: string): Promise<boolean> {
-  const config = await readConfigGuarded(configPath);
-  if (config === null) {
-    return false;
-  }
-
-  if (!config.plugin) {
-    return false;
-  }
-
-  const plugins = config.plugin as string[];
-  const filtered = plugins.filter((p) => !isOurPluginEntry(p));
-  if (filtered.length === plugins.length) return false;
-  if (filtered.length === 0) delete config.plugin;
-  else config.plugin = filtered;
-
-  await writeJsonConfig(configPath, config);
-  return true;
+  return applyConfigSplice(configPath, (splicer) => splicer.removeArrayEntries("plugin", isOurPluginEntry));
 }
 
 export async function isPluginInConfig(configPath: string, packageName: string = PACKAGE_NAME): Promise<boolean> {
@@ -399,12 +377,12 @@ export async function migrateRootConfig(projectDir: string): Promise<boolean> {
 export async function install(
   scope: Scope,
   projectDir: string = process.cwd(),
-  options: InstallOptions = { addPluginConfig: true, migrateRootConfig: true, ensurePermissions: false, force: false },
+  options: InstallOptions = { addPluginConfig: true, migrateRootConfig: true, ensurePermissions: false, force: false, pruneCache: true },
   packageDir: string = getPackageDir(),
 ): Promise<InstallResult> {
   const packageVersion = await getPackageVersion();
 
-  const { addPluginConfig, migrateRootConfig: allowRootMigration, ensurePermissions, force } = options;
+  const { addPluginConfig, migrateRootConfig: allowRootMigration, ensurePermissions, force, pruneCache } = options;
 
   const configBase = scope === "global" ? getGlobalConfigPath() : getLocalConfigPath(projectDir);
   const configPath = join(configBase, "opencode.json");
@@ -469,6 +447,10 @@ export async function install(
   let pluginAdded = false;
   if (addPluginConfig) {
     pluginAdded = await addPluginToConfig(configPath);
+  }
+
+  if (pruneCache) {
+    await new PackageCacheCleaner(PACKAGE_NAME).prune(true);
   }
 
   return {

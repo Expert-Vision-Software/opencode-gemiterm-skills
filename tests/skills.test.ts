@@ -19,7 +19,22 @@ function extractFrontmatter(content: string): string | null {
 function readFrontmatterField(frontmatter: string, field: string): string | null {
   const pattern = new RegExp(`^${field}:\\s*(.+)$`, "m");
   const match = frontmatter.match(pattern);
-  return match ? match[1].trim() : null;
+  if (!match) return null;
+  return stripSurroundingQuotes(match[1].trim());
+}
+
+function stripSurroundingQuotes(value: string): string {
+  return value.replace(/^"(.*)"$/s, "$1");
+}
+
+function frontmatterScalarValues(frontmatter: string): string[] {
+  const values: string[] = [];
+  for (const line of frontmatter.split("\n")) {
+    const match = line.match(/^\s*[A-Za-z][A-Za-z0-9-]*:\s*(\S.*)$/);
+    if (!match) continue;
+    values.push(match[1].trim());
+  }
+  return values;
 }
 
 describe("bundled skills", () => {
@@ -44,6 +59,19 @@ describe("bundled skills", () => {
       const content = await loadSkillFile(name, "REFERENCE.md");
       expect(content.length).toBeGreaterThan(0);
     });
+
+    test(`${name}/SKILL.md quotes every frontmatter value`, async () => {
+      const content = await loadSkillFile(name, "SKILL.md");
+      const frontmatter = extractFrontmatter(content);
+      expect(frontmatter).not.toBeNull();
+      if (frontmatter === null) return;
+      const values = frontmatterScalarValues(frontmatter);
+      expect(values.length).toBeGreaterThan(0);
+      for (const value of values) {
+        expect(value.startsWith('"')).toBe(true);
+        expect(value.endsWith('"')).toBe(true);
+      }
+    });
   }
 });
 
@@ -53,7 +81,16 @@ test("gemiterm declares metadata.tool: gemiterm", async () => {
   expect(frontmatter).not.toBeNull();
   if (frontmatter === null) return;
   expect(frontmatter).toMatch(/^metadata:\s*$/m);
-  expect(frontmatter).toMatch(/^\s+tool:\s+gemiterm\s*$/m);
+  expect(frontmatter).toMatch(/^\s+tool:\s+"gemiterm"\s*$/m);
+});
+
+test("debate-with-gemini declares metadata.requires: gemiterm", async () => {
+  const content = await loadSkillFile("debate-with-gemini", "SKILL.md");
+  const frontmatter = extractFrontmatter(content);
+  expect(frontmatter).not.toBeNull();
+  if (frontmatter === null) return;
+  expect(frontmatter).toMatch(/^metadata:\s*$/m);
+  expect(frontmatter).toMatch(/^\s+requires:\s+"gemiterm"\s*$/m);
 });
 
 describe("package self-config", () => {

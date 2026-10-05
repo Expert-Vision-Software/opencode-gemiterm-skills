@@ -1,13 +1,13 @@
 ---
-name: debate-with-gemini
-description: 'Conduct structured multi-turn technical debates with Gemini AI via the gemiterm CLI. Delegates a subagent to argue a position (for or against) autonomously for up to N turns. Use when the user says - debate gemini, argue with gemini, have gemini defend or attack X, continue debate, or wants a technical position stress-tested against Gemini. Requires the gemiterm CLI to be installed and authenticated.'
-license: MIT
-compatibility: opencode, claude-code, and any skill-compatible agent
+name: "debate-with-gemini"
+description: "Conduct structured multi-turn technical debates with Gemini AI via the gemiterm CLI. Delegates a subagent to argue a position (for or against) autonomously for up to N turns. Use when the user says - debate gemini, argue with gemini, have gemini defend or attack X, continue debate, or wants a technical position stress-tested against Gemini. Requires the gemiterm CLI to be installed and authenticated."
+license: "MIT"
+compatibility: "opencode, claude-code, and any skill-compatible agent"
 metadata:
-  tool: gemiterm
-  workflow: debate
-  runtime: bun
-  requires: gemiterm
+  tool: "gemiterm"
+  workflow: "debate"
+  runtime: "bun"
+  requires: "gemiterm"
 ---
 
 # Debate with Gemini

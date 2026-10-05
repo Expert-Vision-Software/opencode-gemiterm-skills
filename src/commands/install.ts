@@ -13,6 +13,7 @@ export async function installCommand(options: InstallCommandOptions = {}): Promi
     migrateRootConfig: options.migrateRootConfig ?? false,
     ensurePermissions: true,
     force: options.force ?? false,
+    pruneCache: true,
   };
   const result = await install(scope, process.cwd(), installOptions);
 

@@ -1,15 +1,15 @@
 import type { Plugin, Config, PluginInput } from "@opencode-ai/plugin";
-import { install, type Scope, type InstallResult } from "./src/installer.ts";
-import { RegistrationDetector } from "./src/registration.ts";
+import { install, type Scope, type InstallResult } from "./installer.ts";
+import { RegistrationDetector } from "./registration.ts";
 import {
   createAdvisoryContext,
   emitFailureAdvisory,
   maybeEmitInstallAdvisory,
   reportLoadSkippedFiles,
   type AdvisoryContext,
-} from "./src/advisory.ts";
+} from "./advisory.ts";
 
-const LOAD_INSTALL_OPTIONS = { addPluginConfig: false, migrateRootConfig: false, ensurePermissions: false, force: false };
+const LOAD_INSTALL_OPTIONS = { addPluginConfig: false, migrateRootConfig: false, ensurePermissions: false, force: false, pruneCache: false };
 
 async function ensureScopeAssets(context: AdvisoryContext, scope: Scope): Promise<InstallResult> {
   const result = await install(scope, context.directory, LOAD_INSTALL_OPTIONS);

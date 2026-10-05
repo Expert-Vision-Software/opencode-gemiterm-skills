@@ -45,28 +45,31 @@ opencode-gemiterm-skills/
 │       ├── SKILL.md
 │       └── REFERENCE.md
 ├── src/
-│   ├── cli.ts                     # CLI entry: install / uninstall / status
+│   ├── cli.ts                       # CLI entry: install / uninstall / status / clear-cache
 │   ├── commands/
 │   │   ├── install.ts
 │   │   ├── uninstall.ts
-│   │   └── status.ts
-│   ├── advisory.ts                # one-shot load advisory (log + toast), zero writes
-│   ├── installer.ts               # manifest-gated install/uninstall/status core
-│   ├── manifest.ts                # InstallManifest: version + per-file sha256 hashes
-│   ├── plugin-name.ts             # PluginNameNormalizer: canonical @latest names
-│   └── registration.ts            # read-only registration-scope detection
+│   │   ├── status.ts
+│   │   └── clear-cache.ts
+│   ├── advisory.ts                  # one-shot load advisory (log + toast), zero writes
+│   ├── cache.ts                     # PackageCacheCleaner: prune own package cache copies
+│   ├── installer.ts                 # manifest-gated install/uninstall/status core
+│   ├── manifest.ts                  # InstallManifest: version + per-file sha256 hashes
+│   ├── plugin.ts                    # plugin entry: detect scope → ensure assets → advisory
+│   ├── plugin-name.ts               # PluginNameNormalizer: canonical @latest names
+│   ├── registration.ts              # read-only registration-scope detection
+│   └── splice.ts                    # ConfigTextSplicer: surgical JSON/JSONC text edits
 ├── tests/
-│   ├── skills.test.ts             # skill/frontmatter smoke tests
-│   └── regression.test.ts         # scope/manifest/detection regression contract
+│   ├── skills.test.ts               # skill/frontmatter smoke tests
+│   └── regression.test.ts           # scope/manifest/detection regression contract
 ├── .gitignore
 ├── AGENTS.md
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── LICENSE
 ├── README.md
-├── index.ts                       # module entry: re-exports plugin.ts
+├── index.ts                         # module entry: re-exports ./src/plugin.ts
 ├── package.json
-├── plugin.ts                      # plugin entry: detect scope → ensure assets → advisory
 └── tsconfig.json
 ```
 
@@ -94,8 +97,9 @@ A throwaway repro harness asserting the plugin-level contract (no repo writes fo
 | `bunx opencode-gemiterm-skills install` | Install skills locally (or `--scope global`) |
 | `bunx opencode-gemiterm-skills uninstall` | Remove installed skills |
 | `bunx opencode-gemiterm-skills status` | Check install status and version |
+| `bunx opencode-gemiterm-skills clear-cache` | Remove cached copies of this package from the opencode package cache |
 
-`index.ts` is the module entry, a one-line re-export of `plugin.ts`.
+`index.ts` is the module entry, a one-line re-export of `src/plugin.ts`.
 
 ### Install via file:// reference
 
