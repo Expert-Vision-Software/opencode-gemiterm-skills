@@ -9,25 +9,29 @@ export class PackageCacheCleaner {
     this.packageName = packageName;
   }
 
-  async prune(duringOwnInstall: boolean): Promise<void> {
+  async prune(keepRunningCopy: boolean): Promise<string[]> {
     try {
       const base = this.cacheBase();
       if (!(await exists(base))) {
-        return;
+        return [];
       }
+      const removed: string[] = [];
       for (const entry of await readdir(base, { withFileTypes: true })) {
         if (!this.isOwnCacheDir(entry.name)) {
           continue;
         }
         const target = join(base, entry.name);
-        if (duringOwnInstall && this.isRunningFrom(target)) {
+        if (keepRunningCopy && this.isRunningFrom(target)) {
           continue;
         }
         await rm(target, { recursive: true, force: true });
+        removed.push(target);
       }
+      return removed;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.warn(`[${this.packageName}] Cache prune skipped: ${message}`);
+      return [];
     }
   }
 

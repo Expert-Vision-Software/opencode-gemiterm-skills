@@ -2,7 +2,6 @@ interface MemberRange {
   keyStart: number;
   valueStart: number;
   valueEnd: number;
-  hasTrailingComma: boolean;
 }
 
 interface ElementRange {
@@ -35,7 +34,8 @@ export class ConfigTextSplicer {
     let stripped = "";
     let inString = false;
     let escaped = false;
-    for (let index = 0; index < source.length; index++) {
+    let index = 0;
+    while (index < source.length) {
       const char = source[index];
       if (inString) {
         stripped += char;
@@ -46,34 +46,28 @@ export class ConfigTextSplicer {
         } else if (char === '"') {
           inString = false;
         }
+        index++;
         continue;
       }
       if (char === '"') {
         inString = true;
         stripped += char;
-        continue;
-      }
-      if (char === "/" && source[index + 1] === "/") {
-        while (index < source.length && source[index] !== "\n") {
-          index++;
-        }
-        continue;
-      }
-      if (char === "/" && source[index + 1] === "*") {
-        index += 2;
-        while (index < source.length && !(source[index] === "*" && source[index + 1] === "/")) {
-          index++;
-        }
         index++;
         continue;
       }
+      if (char === "/" && (source[index + 1] === "/" || source[index + 1] === "*")) {
+        index = ConfigTextSplicer.skipCommentsAndTrivia(source, index);
+        continue;
+      }
       if (char === ",") {
-        const next = ConfigTextSplicer.skipTrivia(source, index + 1);
+        const next = ConfigTextSplicer.skipCommentsAndTrivia(source, index + 1);
         if (source[next] === "}" || source[next] === "]") {
+          index++;
           continue;
         }
       }
       stripped += char;
+      index++;
     }
     return stripped;
   }
@@ -100,7 +94,7 @@ export class ConfigTextSplicer {
       return this.insertMember(root, key, JSON.stringify([entry]));
     }
     if (this.text[member.valueStart] !== "[") return false;
-    return this.insertArrayElement(member.valueStart, JSON.stringify(entry));
+    return this.insertIntoContainer(member.valueStart, "]", JSON.stringify(entry));
   }
 
   removeArrayEntries(key: string, match: (entry: string) => boolean): boolean {
@@ -117,11 +111,11 @@ export class ConfigTextSplicer {
     });
     if (matched.length === 0) return false;
     for (const element of matched.reverse()) {
-      this.removeElement(element);
+      this.removeRange(element.start, element.end);
     }
     const emptied = this.findMember(root, key);
     if (emptied !== null && this.arrayElements(emptied.valueStart).length === 0) {
-      this.removeMember(emptied);
+      this.removeRange(emptied.keyStart, emptied.valueEnd);
     }
     return true;
   }
@@ -166,80 +160,46 @@ export class ConfigTextSplicer {
   }
 
   private insertMember(objectStart: number, key: string, valueText: string): boolean {
-    const first = this.skipTriviaFrom(objectStart + 1);
-    if (first < 0) return false;
     const keyText = JSON.stringify(key);
-    const between = this.text.slice(objectStart + 1, first);
-    if (this.text[first] === "}") {
-      if (between.includes("\n")) {
-        const lineStart = this.text.lastIndexOf("\n", first - 1) + 1;
-        const outerIndent = this.text.slice(lineStart, first);
-        this.text = this.insertAt(first, `${outerIndent}${this.detectIndentUnit()}${keyText}: ${valueText}\n`);
-        return true;
-      }
-      this.text = this.insertAt(first, `${keyText}: ${valueText}`);
-      return true;
-    }
-    if (between.includes("\n")) {
-      const lineStart = this.text.lastIndexOf("\n", first - 1) + 1;
-      const memberIndent = this.text.slice(lineStart, first);
-      this.text = this.insertAt(objectStart + 1, `\n${memberIndent}${keyText}: ${valueText},`);
-      return true;
-    }
-    this.text = this.insertAt(objectStart + 1, `${keyText}: ${valueText}, `);
-    return true;
+    return this.insertIntoContainer(objectStart, "}", `${keyText}: ${valueText}`);
   }
 
-  private insertArrayElement(arrayStart: number, elementText: string): boolean {
-    const first = this.skipTriviaFrom(arrayStart + 1);
+  private insertIntoContainer(containerStart: number, closingChar: string, contentText: string): boolean {
+    const first = this.skipTriviaFrom(containerStart + 1);
     if (first < 0) return false;
-    const between = this.text.slice(arrayStart + 1, first);
-    if (this.text[first] === "]") {
+    const between = this.text.slice(containerStart + 1, first);
+    if (this.text[first] === closingChar) {
       if (between.includes("\n")) {
         const lineStart = this.text.lastIndexOf("\n", first - 1) + 1;
         const outerIndent = this.text.slice(lineStart, first);
-        this.text = this.insertAt(first, `${outerIndent}${this.detectIndentUnit()}${elementText}\n`);
+        this.text = this.insertAt(first, `${outerIndent}${this.detectIndentUnit()}${contentText}\n`);
         return true;
       }
-      this.text = this.insertAt(first, elementText);
+      this.text = this.insertAt(first, contentText);
       return true;
     }
     if (between.includes("\n")) {
       const lineStart = this.text.lastIndexOf("\n", first - 1) + 1;
-      const elementIndent = this.text.slice(lineStart, first);
-      this.text = this.insertAt(arrayStart + 1, `\n${elementIndent}${elementText},`);
+      const innerIndent = this.text.slice(lineStart, first);
+      this.text = this.insertAt(containerStart + 1, `\n${innerIndent}${contentText},`);
       return true;
     }
-    this.text = this.insertAt(arrayStart + 1, `${elementText}, `);
+    this.text = this.insertAt(containerStart + 1, `${contentText}, `);
     return true;
   }
 
-  private removeElement(element: ElementRange): void {
-    let start = element.start;
-    while (start > 0 && /[ \t]/.test(this.text[start - 1])) start--;
-    if (start > 0 && this.text[start - 1] === "\n") start--;
-    let end = element.end;
+  private removeRange(start: number, end: number): void {
+    let trimmedStart = start;
+    while (trimmedStart > 0 && /[ \t]/.test(this.text[trimmedStart - 1])) trimmedStart--;
+    if (trimmedStart > 0 && this.text[trimmedStart - 1] === "\n") trimmedStart--;
+    let trimmedEnd = end;
     const after = this.skipTriviaFrom(end);
-    if (this.text[after] === ",") {
-      end = after + 1;
+    if (after >= 0 && this.text[after] === ",") {
+      trimmedEnd = after + 1;
     } else {
-      start = this.absorbPrecedingComma(start);
+      trimmedStart = this.absorbPrecedingComma(trimmedStart);
     }
-    this.text = this.text.slice(0, start) + this.text.slice(end);
-  }
-
-  private removeMember(member: MemberRange): void {
-    let start = member.keyStart;
-    while (start > 0 && /[ \t]/.test(this.text[start - 1])) start--;
-    if (start > 0 && this.text[start - 1] === "\n") start--;
-    let end = member.valueEnd;
-    const after = this.skipTriviaFrom(end);
-    if (this.text[after] === ",") {
-      end = after + 1;
-    } else {
-      start = this.absorbPrecedingComma(start);
-    }
-    this.text = this.text.slice(0, start) + this.text.slice(end);
+    this.text = this.text.slice(0, trimmedStart) + this.text.slice(trimmedEnd);
   }
 
   private absorbPrecedingComma(start: number): number {
@@ -277,13 +237,7 @@ export class ConfigTextSplicer {
       const valueEnd = this.scanValueEnd(valueStart);
       if (valueEnd < 0) return null;
       if (name === key) {
-        const afterComma = this.skipTriviaFrom(valueEnd);
-        return {
-          keyStart: cursor,
-          valueStart,
-          valueEnd,
-          hasTrailingComma: afterComma >= 0 && this.text[afterComma] === ",",
-        };
+        return { keyStart: cursor, valueStart, valueEnd };
       }
       const next = this.skipTriviaFrom(valueEnd);
       if (next >= 0 && this.text[next] === ",") {
@@ -315,22 +269,27 @@ export class ConfigTextSplicer {
   }
 
   private skipTriviaFrom(index: number): number {
-    let cursor = index;
-    while (cursor < this.text.length) {
-      const char = this.text[cursor];
+    const next = ConfigTextSplicer.skipCommentsAndTrivia(this.text, index);
+    return next >= this.text.length ? -1 : next;
+  }
+
+  private static skipCommentsAndTrivia(source: string, start: number): number {
+    let cursor = start;
+    while (cursor < source.length) {
+      const char = source[cursor];
       if (char === " " || char === "\t" || char === "\n" || char === "\r") {
         cursor++;
         continue;
       }
-      if (char === "/" && this.text[cursor + 1] === "/") {
-        while (cursor < this.text.length && this.text[cursor] !== "\n") {
+      if (char === "/" && source[cursor + 1] === "/") {
+        while (cursor < source.length && source[cursor] !== "\n") {
           cursor++;
         }
         continue;
       }
-      if (char === "/" && this.text[cursor + 1] === "*") {
+      if (char === "/" && source[cursor + 1] === "*") {
         cursor += 2;
-        while (cursor < this.text.length && !(this.text[cursor] === "*" && this.text[cursor + 1] === "/")) {
+        while (cursor < source.length && !(source[cursor] === "*" && source[cursor + 1] === "/")) {
           cursor++;
         }
         cursor += 2;
@@ -338,7 +297,7 @@ export class ConfigTextSplicer {
       }
       return cursor;
     }
-    return -1;
+    return cursor;
   }
 
   private scanString(index: number): number {
@@ -371,17 +330,7 @@ export class ConfigTextSplicer {
           continue;
         }
         if (current === "/" && (this.text[cursor + 1] === "/" || this.text[cursor + 1] === "*")) {
-          if (this.text[cursor + 1] === "/") {
-            while (cursor < this.text.length && this.text[cursor] !== "\n") {
-              cursor++;
-            }
-          } else {
-            cursor += 2;
-            while (cursor < this.text.length && !(this.text[cursor] === "*" && this.text[cursor + 1] === "/")) {
-              cursor++;
-            }
-            cursor += 2;
-          }
+          cursor = ConfigTextSplicer.skipCommentsAndTrivia(this.text, cursor);
           continue;
         }
         if (current === "{" || current === "[") {
@@ -408,32 +357,5 @@ export class ConfigTextSplicer {
 
   private insertAt(index: number, insertion: string): string {
     return this.text.slice(0, index) + insertion + this.text.slice(index);
-  }
-
-  private static skipTrivia(source: string, start: number): number {
-    let index = start;
-    while (index < source.length) {
-      const char = source[index];
-      if (/\s/.test(char)) {
-        index++;
-        continue;
-      }
-      if (char === "/" && source[index + 1] === "/") {
-        while (index < source.length && source[index] !== "\n") {
-          index++;
-        }
-        continue;
-      }
-      if (char === "/" && source[index + 1] === "*") {
-        index += 2;
-        while (index < source.length && !(source[index] === "*" && source[index + 1] === "/")) {
-          index++;
-        }
-        index += 2;
-        continue;
-      }
-      break;
-    }
-    return index;
   }
 }

@@ -9,7 +9,7 @@ import {
   type AdvisoryContext,
 } from "./advisory.ts";
 
-const LOAD_INSTALL_OPTIONS = { addPluginConfig: false, migrateRootConfig: false, ensurePermissions: false, force: false };
+const LOAD_INSTALL_OPTIONS = { addPluginConfig: false, migrateRootConfig: false, ensurePermissions: false, force: false, pruneCache: false };
 
 async function ensureScopeAssets(context: AdvisoryContext, scope: Scope): Promise<InstallResult> {
   const result = await install(scope, context.directory, LOAD_INSTALL_OPTIONS);

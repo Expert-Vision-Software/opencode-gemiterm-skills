@@ -14,6 +14,7 @@ export interface InstallOptions {
   migrateRootConfig: boolean;
   ensurePermissions: boolean;
   force: boolean;
+  pruneCache: boolean;
 }
 
 export type InstallAction = "installed" | "upgraded" | "noop";
@@ -237,6 +238,7 @@ export async function ensureSkillPermissions(configPath: string, skillNames: rea
     await writeJsonConfig(configPath, { permission: { skill: skillPerms } });
     return true;
   }
+  await warnOnUnsplicablePermissionEntries(configPath, skillNames);
   return applyConfigSplice(configPath, (splicer) => {
     let changed = false;
     for (const name of skillNames) {
@@ -246,6 +248,48 @@ export async function ensureSkillPermissions(configPath: string, skillNames: rea
     }
     return changed;
   });
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function warnOnUnsplicablePermissionEntries(configPath: string, skillNames: readonly string[]): Promise<void> {
+  const config = await readJsonConfig(configPath);
+  if (config === null) {
+    return;
+  }
+  const permission = config.permission;
+  if (permission !== undefined && !isPlainObject(permission)) {
+    console.warn(
+      `[${PACKAGE_NAME}] Refusing to update skill permissions in ${configPath}: ` +
+        `"permission" is not an object. The file was left unchanged for that entry.`
+    );
+    return;
+  }
+  if (!isPlainObject(permission)) {
+    return;
+  }
+  const skill = permission.skill;
+  if (skill !== undefined && !isPlainObject(skill)) {
+    console.warn(
+      `[${PACKAGE_NAME}] Refusing to update skill permissions in ${configPath}: ` +
+        `"permission.skill" is not an object. The file was left unchanged for that entry.`
+    );
+    return;
+  }
+  if (!isPlainObject(skill)) {
+    return;
+  }
+  for (const name of skillNames) {
+    const entry = skill[name];
+    if (entry !== undefined && typeof entry !== "string") {
+      console.warn(
+        `[${PACKAGE_NAME}] Refusing to update the skill permission for "${name}" in ${configPath}: ` +
+          `the existing entry is not a string. The file was left unchanged for that entry.`
+      );
+    }
+  }
 }
 
 export async function addPluginToConfig(configPath: string): Promise<boolean> {
@@ -333,12 +377,12 @@ export async function migrateRootConfig(projectDir: string): Promise<boolean> {
 export async function install(
   scope: Scope,
   projectDir: string = process.cwd(),
-  options: InstallOptions = { addPluginConfig: true, migrateRootConfig: true, ensurePermissions: false, force: false },
+  options: InstallOptions = { addPluginConfig: true, migrateRootConfig: true, ensurePermissions: false, force: false, pruneCache: true },
   packageDir: string = getPackageDir(),
 ): Promise<InstallResult> {
   const packageVersion = await getPackageVersion();
 
-  const { addPluginConfig, migrateRootConfig: allowRootMigration, ensurePermissions, force } = options;
+  const { addPluginConfig, migrateRootConfig: allowRootMigration, ensurePermissions, force, pruneCache } = options;
 
   const configBase = scope === "global" ? getGlobalConfigPath() : getLocalConfigPath(projectDir);
   const configPath = join(configBase, "opencode.json");
@@ -405,7 +449,9 @@ export async function install(
     pluginAdded = await addPluginToConfig(configPath);
   }
 
-  await new PackageCacheCleaner(PACKAGE_NAME).prune(true);
+  if (pruneCache) {
+    await new PackageCacheCleaner(PACKAGE_NAME).prune(true);
+  }
 
   return {
     action,

@@ -21,11 +21,12 @@ import {
 import { RegistrationDetector } from "../src/registration.ts";
 import { installManifestPath } from "../src/manifest.ts";
 import { failureFallbackMessage } from "../src/advisory.ts";
+import { clearCacheCommand } from "../src/commands/clear-cache.ts";
 import plugin from "../src/plugin.ts";
 
 const PKG = "opencode-gemiterm-skills";
-const LOAD_OPTIONS: InstallOptions = { addPluginConfig: false, migrateRootConfig: false, ensurePermissions: false, force: false };
-const CLI_OPTIONS: InstallOptions = { addPluginConfig: true, migrateRootConfig: true, ensurePermissions: true, force: false };
+const LOAD_OPTIONS: InstallOptions = { addPluginConfig: false, migrateRootConfig: false, ensurePermissions: false, force: false, pruneCache: false };
+const CLI_OPTIONS: InstallOptions = { addPluginConfig: true, migrateRootConfig: true, ensurePermissions: true, force: false, pruneCache: true };
 
 let sandboxRoot: string;
 let realXdg: string | undefined;
@@ -585,6 +586,30 @@ describe("regression contract", () => {
     expect(await fileExists(installManifestPath(localDir, PKG))).toBe(true);
   });
 
+  test("config hook path performs no cache deletion even when sibling cache copies exist", async () => {
+    const repo = await makeRepo();
+    const cacheBase = join(sandboxRoot, "cache");
+    const packagesBase = join(cacheBase, "opencode", "packages");
+    const siblingLatest = join(packagesBase, `${PKG}@latest`);
+    const siblingVersion = join(packagesBase, `${PKG}@1.0.0`);
+    await mkdir(siblingLatest, { recursive: true });
+    await mkdir(siblingVersion, { recursive: true });
+    await writeFile(join(siblingLatest, "marker.txt"), "latest copy");
+    await writeFile(join(siblingVersion, "marker.txt"), "pinned copy");
+    const realCache = process.env.XDG_CACHE_HOME;
+    process.env.XDG_CACHE_HOME = cacheBase;
+
+    try {
+      await registerRepoLocal(repo);
+      await invokeConfigHook(repo);
+
+      expect(await readFile(join(siblingLatest, "marker.txt"), "utf-8")).toBe("latest copy");
+      expect(await readFile(join(siblingVersion, "marker.txt"), "utf-8")).toBe("pinned copy");
+    } finally {
+      process.env.XDG_CACHE_HOME = realCache;
+    }
+  });
+
   test("config hook degrades a failed install to one warn log and one warning toast, never rejecting", async () => {
     const repo = await makeRepo();
     const localDir = getLocalConfigPath(repo);
@@ -708,10 +733,34 @@ describe("regression contract", () => {
     expect(await fileExists(installManifestPath(base, PKG))).toBe(true);
     expect((await status(repo)).local?.version).toBeTruthy();
   });
+
+  test("clear-cache reports nothing to clear when the cache is empty and lists removals otherwise", async () => {
+    const cacheBase = join(sandboxRoot, "clear-cache-report");
+    const packagesBase = join(cacheBase, "opencode", "packages");
+    const staleCopy = join(packagesBase, `${PKG}@0.9.0`);
+    await mkdir(staleCopy, { recursive: true });
+    await writeFile(join(staleCopy, "marker.txt"), "stale");
+    const realCache = process.env.XDG_CACHE_HOME;
+    process.env.XDG_CACHE_HOME = cacheBase;
+    const log = spyOn(console, "log").mockImplementation(() => {});
+
+    try {
+      await clearCacheCommand();
+      expect(log.mock.calls.map((call) => call.join(" ")).join("\n")).toContain(staleCopy);
+      expect(await fileExists(staleCopy)).toBe(false);
+
+      log.mockClear();
+      await clearCacheCommand();
+      expect(log.mock.calls.map((call) => call.join(" ")).join("\n")).toContain("Nothing to clear");
+    } finally {
+      log.mockRestore();
+      process.env.XDG_CACHE_HOME = realCache;
+    }
+  });
 });
 
 describe("surgical config splice", () => {
-  const SPLICE_OPTIONS: InstallOptions = { addPluginConfig: true, migrateRootConfig: false, ensurePermissions: true, force: false };
+  const SPLICE_OPTIONS: InstallOptions = { addPluginConfig: true, migrateRootConfig: false, ensurePermissions: true, force: false, pruneCache: false };
 
   function indentedConsumerConfig(): string {
     return [
