@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Surgical config writes (new `src/splice.ts`): `install`, `uninstall`, and permission ensures splice the raw text of an existing consumer `opencode.json`/`opencode.jsonc` — comments, indentation, and formatting outside the touched entry are preserved byte-for-byte. Whole-file serialization is used only for brand-new files; malformed files are warned about, never rewritten.
   - Cache hygiene: CLI installs prune this package's own stale cache copies (`@latest`, `@<version>`) under `$XDG_CACHE_HOME/opencode/packages` (fallback `~/.cache/...`), and a new self-only `clear-cache` subcommand reports exactly what was removed (or "Nothing to clear"). The load hook never deletes cache — `pruneCache` is false on that path, with a regression test asserting sibling cache copies survive a hook-driven install.
   - All skill frontmatter values are double-quoted (the `metadata.requires: "gemiterm"` link is unchanged), the README badge row is a single line, and `prepublishOnly` verifies the tarball via `npm pack --dry-run` (`scripts/verify-pack.sh`).
+- The self-config test asserts the actual `.opencode/opencode.json` state: the `plugin` array pins `opencode-architect@^0.9.2` without self-registering this package, and `skills.paths` contains `../skills`. Docs (`AGENTS.md`, `CONTRIBUTING.md`) aligned with that config.
+- The release workflow's publish job now runs `scripts/verify-pack.sh` before `npm publish`, failing the release if the tarball is missing either bundled skill's `SKILL.md`.
 
 ## [1.1.0] - 2026-09-21
 

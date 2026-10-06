@@ -32,8 +32,8 @@
 
 <self_config>
 <location>.opencode/opencode.json</location>
-<purpose>Register skills/ as a skill path and pre-allow both skills</purpose>
-<registration>No package.json opencode key (tests/skills.test.ts asserts pkg.opencode is undefined). Dev use is covered by skills.paths: ["../skills"]; this file does NOT self-register the package in its plugin array, so detection stays "none" for the maintainer checkout.</registration>
+<purpose>Register skills/ as a dev skill path and pin the architect plugin for development</purpose>
+<registration>No package.json opencode key (tests/skills.test.ts asserts pkg.opencode is undefined). The plugin array pins opencode-architect@^0.9.2 and does NOT self-register the package; dev use is covered by skills.paths: ["../skills"], so detection stays "none" for the maintainer checkout.</registration>
 </self_config>
 
 <consumer_install>

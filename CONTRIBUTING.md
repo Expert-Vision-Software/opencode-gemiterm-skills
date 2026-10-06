@@ -28,7 +28,7 @@ The smoke test (`tests/skills.test.ts`) verifies:
 - `description` is non-empty and within the 1024-character limit.
 - The `metadata.requires: gemiterm` link on `debate-with-gemini` is preserved.
 - The `metadata.tool: gemiterm` link on `gemiterm` is preserved.
-- `.opencode/opencode.json` exists and registers at least one skill path.
+- `.opencode/opencode.json` pins the architect plugin, registers `../skills` as a skill path, and does not self-register this package in the `plugin` array (maintainer-checkout detection is "none" by config).
 - `package.json` has no `opencode` key — registration comes from the consumer's `plugin` array, not a static package pointer.
 
 ## File layout
@@ -36,7 +36,7 @@ The smoke test (`tests/skills.test.ts`) verifies:
 ```
 opencode-gemiterm-skills/
 ├── .opencode/
-│   └── opencode.json              # self-config: skills.paths + permission.skill
+│   └── opencode.json              # dev self-config: skills.paths + architect plugin pin (no self-registration)
 ├── skills/
 │   ├── gemiterm/
 │   │   ├── SKILL.md
@@ -128,6 +128,10 @@ This skips the npm install. OpenCode will auto-install skills from the local che
 2. **The `metadata.requires: gemiterm` link** on `debate-with-gemini` must remain — consumers depend on it.
 3. **GemiTerm is a Bun-native CLI.** All skill documents assume Bun as the runtime. Do not reference Python, `pipx`, or `pip` install paths.
 4. **Only add code under `src/`** that supports the install/uninstall/status commands. This is a skill-bundling package, not a runtime library.
+
+## Release
+
+Releases are tag-driven: push a `vX.Y.Z` tag (or use the workflow's `workflow_dispatch`) and `.github/workflows/release.yml` extracts the matching `## [X.Y.Z] - YYYY-MM-DD` section from `CHANGELOG.md` into the GitHub Release notes, then publishes to npm. Before publishing, the workflow runs `bun run check`, `bun test`, and `bash scripts/verify-pack.sh`, which runs `npm pack --dry-run` and fails unless the tarball contains `skills/gemiterm/SKILL.md` and `skills/debate-with-gemini/SKILL.md` (plus the code entry points).
 
 ## Troubleshooting
 

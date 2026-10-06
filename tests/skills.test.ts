@@ -94,15 +94,23 @@ test("debate-with-gemini declares metadata.requires: gemiterm", async () => {
 });
 
 describe("package self-config", () => {
-  test(".opencode/opencode.json exists and registers skill paths", async () => {
+  test(".opencode/opencode.json pins the architect plugin and skill paths without self-registering", async () => {
     const path = join(PACKAGE_ROOT, ".opencode", "opencode.json");
     const content = await readFile(path, "utf-8");
     const config = JSON.parse(content) as Record<string, unknown>;
+    const plugin = config.plugin as unknown;
+    expect(Array.isArray(plugin)).toBe(true);
+    if (!Array.isArray(plugin)) return;
+    expect(plugin).toContain("opencode-architect@^0.9.2");
+    const selfRegistrations = plugin.filter((entry) =>
+      String(entry).toLowerCase().includes("opencode-gemiterm-skills"),
+    );
+    expect(selfRegistrations).toHaveLength(0);
     const skills = config.skills as { paths?: unknown } | undefined;
     expect(skills).toBeDefined();
     expect(Array.isArray(skills?.paths)).toBe(true);
     if (!Array.isArray(skills?.paths)) return;
-    expect(skills.paths.length).toBeGreaterThan(0);
+    expect(skills.paths).toContain("../skills");
   });
 
   test("package.json has no static opencode.plugin (plugin uses config hook instead)", async () => {

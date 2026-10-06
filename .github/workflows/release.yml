@@ -111,6 +111,9 @@ jobs:
           bun run check
           bun test
 
+      - name: Verify tarball contains skill files
+        run: bash scripts/verify-pack.sh
+
       - name: Publish to npm
         run: |
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
